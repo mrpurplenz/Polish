@@ -26,7 +26,8 @@ class Polish:
         # Remove the plugin menu item and icon
         self.iface.removePluginMenu("Polish",self.action)
 
-
+    def testfun(self):
+        print "local file function test"
 
     # run
     def Polish(self):
