@@ -1,0 +1,29 @@
+[general]
+name=Polish
+qgisMinimumVersion=2.0
+qgisMaximumVersion=2.99
+description=This is a plugin for handling polsh format files the
+    version is 0.1
+version=version 0.1
+author=Mr Purple
+email=mrpurplenz@gmail.com
+
+
+changelog=this is the first instance of this file
+
+
+tags=  wkt, raster,Polish, spaced tag , tag
+
+;tracker=http://www.
+;homepage=http://www.
+;repository=http://www.
+
+category=web
+
+experimental=True
+
+about=This plugihn is a repository of handler functions for reading from and writing to polish format files.
+
+
+; change icon...
+icon=icons/icon.png
