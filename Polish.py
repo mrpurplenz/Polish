@@ -128,8 +128,9 @@ class Polish:
             polish_file.write(u'[END-IMG ID\]\n')
             
             for layer in layers_list:
-                crsSrc = QgsCoordinateReferenceSystem(3793)    # WGS 84
-                crsDest = QgsCoordinateReferenceSystem(4326)  # NZGD2000 / NZTM2000
+                layer_dp=layer.dataProvider()
+                crsSrc = layer_dp.crs()
+                crsDest = QgsCoordinateReferenceSystem(4326)  # WGS84
                 xform = QgsCoordinateTransform(crsSrc, crsDest)
                 iter = layer.getFeatures()
                 #get indices for mp attributes 
