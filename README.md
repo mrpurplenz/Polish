@@ -1,7 +1,7 @@
 Polish
 ======
 
-A plugin for handling polish format files in QGIS
+A plugin for handling polish format files in QGIS. Originally envisioned by Mr Purple.
 
 Premise
 =======
