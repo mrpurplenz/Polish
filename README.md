@@ -40,5 +40,7 @@ and then activating it by going to "plugins/manage and install plugins" then sel
 Access the functions from the console using
 
 from qgis import utils
+
 Polish = utils.plugins['Polish']
+
 Polish.functionname()
