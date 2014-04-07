@@ -58,6 +58,9 @@ class Polish:
         layers_list=[]
         for file in files_list:
             layers_list.append(QgsVectorLayer(file,file, "ogr"))
+        export_layers_as_polish(self,layers_list,output_file)
+        
+    def export_layers_as_polish(self,layers_list,output_file):
 
         #Build PASS polish header dictionary
         pass_header = {}
