@@ -97,8 +97,8 @@ def export_polish(self,layers_list,output_file):
         for header_key in default_header:
             polish_string= str(header_key)+"="+str(default_header[header_key]) 
             polish_file.write(unicode(polish_string)+'\n')
-        polish_file.write(u'[END-IMG ID\]\n')
-        
+        polish_file.write(u'[END-IMG ID]\n')
+        polish_file.write(u'\n')
         #Loop through layers
         for layer in layers_list:
             layer_dp=layer.dataProvider()
@@ -157,11 +157,13 @@ def export_polish(self,layers_list,output_file):
                     MP_NAME_val=''
                 #Determine end level here
                 END_LEVEL_val=1
-                
+                if MP_NAME_val=='NULL':
+                    MP_NAME_val=''
                 #print "MP_TYPE is "+str(MP_TYPE_val)
                 #print "MP_BIT_LVL is "+str(MP_BIT_LVL_val) 
                 #print "NAME is "+str(NAME_val)
                 geometry_wkbtype=geom.wkbType()
+                #print geometry_wkbtype
                 if geometry_wkbtype == QGis.WKBMultiPolygon:
                     #print "WKBMultiPolygon found"
                     polish_file.write(u'[POLYGON]\n')
@@ -172,17 +174,19 @@ def export_polish(self,layers_list,output_file):
                     myQgsMultiPolygon=geom.asMultiPolygon()
                     for mygeom in myQgsMultiPolygon:
                         geomWrite(polish_file,mygeom,xform)
-                    polish_file.write(u'[END]\n')
+                    polish_file.write(u'[END]\n\n')
                 elif geometry_wkbtype == QGis.WKBPolygon:
-                    print "WKBPolygon found"
+                    #print "WKBPolygon found"
                     polish_file.write(u'[POLYGON]\n')
                     polish_file.write(u'Type='+str(MP_TYPE_val)+'\n')                    
                     if MP_NAME_val!='':
                         polish_file.write(u'Label='+str(MP_NAME_val)+'\n')
                     polish_file.write(u'EndLevel='+str(END_LEVEL_val)+'\n')
                     mygeom=geom.asPolygon()
-                    geomWrite(polish_file,mygeom,xform)
-                    polish_file.write(u'[END]\n')
+                    myQgsPolygons=geom.asPolygon()
+                    for mygeom in myQgsPolygons:
+                        geomWrite(polish_file,mygeom,xform)
+                    polish_file.write(u'[END]\n\n')
                 if geometry_wkbtype == QGis.WKBMultiLineString:
                     #print "WKBMultiLineString found"
                     polish_file.write(u'[POLYLINE]\n')
@@ -193,7 +197,7 @@ def export_polish(self,layers_list,output_file):
                     myQgsMultiPolyline=geom.asMultiPolyline()
                     for mygeom in myQgsMultiPolyline:
                         geomWrite(polish_file,mygeom,xform)
-                    polish_file.write(u'[END]\n')
+                    polish_file.write(u'[END]\n\n')
                 elif geometry_wkbtype == QGis.WKBLineString:
                     #print "WKBLineString found"
                     polish_file.write(u'[POLYLINE]\n')
@@ -203,28 +207,32 @@ def export_polish(self,layers_list,output_file):
                     polish_file.write(u'EndLevel='+str(END_LEVEL_val)+'\n')
                     mygeom=geom.asPolyline()
                     geomWrite(polish_file,mygeom,xform)
-                    polish_file.write(u'[END]\n')
+                    polish_file.write(u'[END]\n\n')
                 if geometry_wkbtype == QGis.WKBMultiPoint:
                     myQgsMultiPoint=geom.asMultiPoint()
                     for mygeom in myQgsMultiPoint:
                         #print "WKBMultiPoint found"
-                        polish_file.write(u'[POINT]\n')
+                        polish_file.write(u'[POI]\n')
                         polish_file.write(u'Type='+str(MP_TYPE_val)+'\n')                    
                         if MP_NAME_val!='':
                             polish_file.write(u'Label='+str(MP_NAME_val)+'\n')
                         polish_file.write(u'EndLevel='+str(END_LEVEL_val)+'\n')
-                        geomWrite(polish_file,mygeom,xform)
-                        polish_file.write(u'[END]\n')
+                        myQgsPoint_list=[]
+                        myQgsPoint_list.append(mygeom)
+                        geomWrite(polish_file,myQgsPoint_list,xform)
+                        polish_file.write(u'[END]\n\n')
                 elif geometry_wkbtype == QGis.WKBPoint:
-                    print "WKBPoint found"
-                    #polish_file.write(u'[POINT]\n')
+                    #print "WKBPoint found"
+                    polish_file.write(u'[POI]\n')
                     polish_file.write(u'Type='+str(MP_TYPE_val)+'\n')                    
                     if MP_NAME_val!='':
                         polish_file.write(u'Label='+str(MP_NAME_val)+'\n')
                     polish_file.write(u'EndLevel='+str(END_LEVEL_val)+'\n')
-                    mygeom=geom.asPolyline()
-                    geomWrite(polish_file,mygeom,xform)
-                    polish_file.write(u'[END]\n')
+                    mygeom=geom.asPoint()
+                    myQgsPoint_list=[]
+                    myQgsPoint_list.append(mygeom)
+                    geomWrite(polish_file,myQgsPoint_list,xform)
+                    polish_file.write(u'[END]\n\n')
 
 class Polish:
 
