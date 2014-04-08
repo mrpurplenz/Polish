@@ -172,10 +172,7 @@ def export_polish(self,layers_list,output_file):
                         MP_NAME_val=''
                 else:
                     MP_NAME_val=''
-                #Determine end level here
-                ##########################################################
 
-                END_LEVEL_val=1
                 try:
                     if MP_NAME_val.isNull():
                         MP_NAME_val=''
