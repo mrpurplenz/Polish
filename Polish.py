@@ -157,8 +157,11 @@ def export_polish(self,layers_list,output_file):
                     MP_NAME_val=''
                 #Determine end level here
                 END_LEVEL_val=1
-                if MP_NAME_val=='NULL':
-                    MP_NAME_val=''
+                try:
+                    if MP_NAME_val.isNull():
+                        MP_NAME_val=''
+                except:
+                    pass
                 #print "MP_TYPE is "+str(MP_TYPE_val)
                 #print "MP_BIT_LVL is "+str(MP_BIT_LVL_val) 
                 #print "NAME is "+str(NAME_val)
