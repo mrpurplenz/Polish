@@ -16,12 +16,27 @@ Function objectives
 ===================
 
 Export to Polish format
------------------------
-The first function to write is the export_to_polish function which will take a list of QGIS map layers and output a polish format file.
+=======================
+This function is now working:
+how to export files or layers as a polish format file
+Polish format files contain objects with zoom level attributes in order to set these attributes you need to add attributes to the layers an populate the attributes for the featurews in those layers yourself
+MP_BIT_LVL containing an integer representing the bit level at which the feature should be displayed when zooming in from infinity
+MP_NAME containing NOT THE LABEL OF THE FEATURE but the name of the attribute which contains the lable you wish to display for that feature
+MP_DTA_LVL contains an integer representing the bit level at which the feature should cease to display when zooming in from infinity
+MP_TYPE containing a string of the polish type code to use in the output file
 
-This will be acheived by reading in each feature of each layer and generating the text output into an output .mp file
+Usage:
+------
+To use this function from the console:
 
-The header data of the output file will have default values which can be modified through teh use of a template file or by passing a dictionary of header key:value combinations.
+from qgis import utils
+Polish_object_instance = utils.plugins['Polish']
+files_list=[]
+files_list.append("filename1.shp")
+files_list.append("filename2.shp")
+Polish_object_instance.export_files_as_polish(files_list,'output.mp')
+
+
 
 Import from Polish format
 -------------------------
