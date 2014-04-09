@@ -18,11 +18,17 @@ Function objectives
 Export to Polish format
 =======================
 This function is now working:
-how to export files or layers as a polish format file
+
+how to export files or layers as a polish format file:
+
 Polish format files contain objects with zoom level attributes in order to set these attributes you need to add attributes to the layers an populate the attributes for the featurews in those layers yourself
+
 MP_BIT_LVL containing an integer representing the bit level at which the feature should be displayed when zooming in from infinity
+
 MP_NAME containing NOT THE LABEL OF THE FEATURE but the name of the attribute which contains the lable you wish to display for that feature
+
 MP_DTA_LVL contains an integer representing the bit level at which the feature should cease to display when zooming in from infinity
+
 MP_TYPE containing a string of the polish type code to use in the output file
 
 Usage:
