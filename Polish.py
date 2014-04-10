@@ -189,7 +189,7 @@ def export_polish(self,layers_list,output_file):
                     polish_file.write(u'Type='+str(MP_TYPE_val)+'\n')
                     if MP_NAME_val!='':
                         polish_file.write(u'Label='+str(MP_NAME_val)+'\n')
-                    polish_file.write(u'EndLevel='+str(END_LEVEL_val)+'\n')
+                    polish_file.write(u'EndLevel='+str(END_LVL_val)+'\n')
                     myQgsMultiPolygon=geom.asMultiPolygon()
                     for mygeom in myQgsMultiPolygon:
                         geomWrite(polish_file,mygeom,xform,DATA_LVL)
@@ -200,7 +200,7 @@ def export_polish(self,layers_list,output_file):
                     polish_file.write(u'Type='+str(MP_TYPE_val)+'\n')                    
                     if MP_NAME_val!='':
                         polish_file.write(u'Label='+str(MP_NAME_val)+'\n')
-                    polish_file.write(u'EndLevel='+str(END_LEVEL_val)+'\n')
+                    polish_file.write(u'EndLevel='+str(END_LVL_val)+'\n')
                     mygeom=geom.asPolygon()
                     myQgsPolygons=geom.asPolygon()
                     for mygeom in myQgsPolygons:
@@ -212,7 +212,7 @@ def export_polish(self,layers_list,output_file):
                     polish_file.write(u'Type='+str(MP_TYPE_val)+'\n')
                     if MP_NAME_val!='':
                         polish_file.write(u'Label='+str(MP_NAME_val)+'\n')
-                    polish_file.write(u'EndLevel='+str(END_LEVEL_val)+'\n')
+                    polish_file.write(u'EndLevel='+str(END_LVL_val)+'\n')
                     myQgsMultiPolyline=geom.asMultiPolyline()
                     for mygeom in myQgsMultiPolyline:
                         geomWrite(polish_file,mygeom,xform,DATA_LVL)
@@ -223,7 +223,7 @@ def export_polish(self,layers_list,output_file):
                     polish_file.write(u'Type='+str(MP_TYPE_val)+'\n')                    
                     if MP_NAME_val!='':
                         polish_file.write(u'Label='+str(MP_NAME_val)+'\n')
-                    polish_file.write(u'EndLevel='+str(END_LEVEL_val)+'\n')
+                    polish_file.write(u'EndLevel='+str(END_LVL_val)+'\n')
                     mygeom=geom.asPolyline()
                     geomWrite(polish_file,mygeom,xform,DATA_LVL)
                     polish_file.write(u'[END]\n\n')
@@ -235,7 +235,7 @@ def export_polish(self,layers_list,output_file):
                         polish_file.write(u'Type='+str(MP_TYPE_val)+'\n')                    
                         if MP_NAME_val!='':
                             polish_file.write(u'Label='+str(MP_NAME_val)+'\n')
-                        polish_file.write(u'EndLevel='+str(END_LEVEL_val)+'\n')
+                        polish_file.write(u'EndLevel='+str(END_LVL_val)+'\n')
                         myQgsPoint_list=[]
                         myQgsPoint_list.append(mygeom)
                         geomWrite(polish_file,myQgsPoint_list,xform,DATA_LVL)
@@ -246,7 +246,7 @@ def export_polish(self,layers_list,output_file):
                     polish_file.write(u'Type='+str(MP_TYPE_val)+'\n')                    
                     if MP_NAME_val!='':
                         polish_file.write(u'Label='+str(MP_NAME_val)+'\n')
-                    polish_file.write(u'EndLevel='+str(END_LEVEL_val)+'\n')
+                    polish_file.write(u'EndLevel='+str(END_LVL_val)+'\n')
                     mygeom=geom.asPoint()
                     myQgsPoint_list=[]
                     myQgsPoint_list.append(mygeom)
