@@ -153,8 +153,14 @@ def export_polish(self,layers_list,output_file):
                     MP_BIT_LVL_val=(attrs[MP_BIT_LVL_idx])
                 else:
                     MP_BIT_LVL_val=24
-                END_LVL_val=BIT_LEVEL_DICT[MP_BIT_LVL_val]
-                
+                try:
+                    END_LVL_val=BIT_LEVEL_DICT[MP_BIT_LVL_val]
+                except:
+                    print "attempted to access level no. for bit level "+str(MP_BIT_LVL_val)
+                    END_LVL_val=1
+                    print "level set to "+str(END_LVL_val)
+                    
+                    
                 if MP_DTA_LVL_idx >=0:
                     MP_DTA_LVL_val=(attrs[MP_DTA_LVL_idx])
                 else:
