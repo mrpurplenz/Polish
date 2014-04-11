@@ -167,7 +167,12 @@ def export_polish(self,layers_list,output_file):
                 try:
                     END_LVL_val=BIT_LEVEL_DICT[MP_BIT_LVL_val]
                 except:
-                    print "attempted to access level no. for bit level "+str(MP_BIT_LVL_val)
+                    print "No value found for MP_BIT_LVL attribute id reported as "+str(MP_BIT_LVL_idx)+". MP_TYPE for this feature was reported to be "+str(MP_TYPE_val)
+                    print "attributes are:"
+                    i=0
+                    for attribute in attribute_list:
+                        print "id "+str(i)+" is "+str(attribute.name())
+                        i=i+1
                     END_LVL_val=1
                     print "level set to "+str(END_LVL_val)
                     
