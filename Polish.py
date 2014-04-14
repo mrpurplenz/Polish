@@ -40,7 +40,9 @@ def writepolishobject(polish_file,outputtype,MP_TYPE_val,MP_NAME_val,END_LVL_val
         geomWrite(polish_file,datalinegeom,xform,DATA_LVL)
     polish_file.write(u'[END]\n\n')
     
-def export_polish(self,layers_list,output_file):
+def export_polish(self,layers_list,output_file,import_dict):
+   
+    
     #Build PASS polish header dictionary
     pass_header = {}
     pass_header['Name']='Map name'
@@ -99,6 +101,13 @@ def export_polish(self,layers_list,output_file):
                 pass
         for header_key in default_header:
             print default_header[header_key] 
+            
+    #Add import_dict to header info
+    for header_key in default_header:
+        try:
+            default_header[header_key]=import_dict[header_key]
+        except:
+            pass
     
     #Prepare BIT_LEVEL dictionary
     BIT_LEVEL_DICT = {}
@@ -259,17 +268,17 @@ class Polish:
     def testfun(self):
         print "local file function test"
         
-    def export_layers_as_polish(self,layers_list,output_file):
-        export_polish(self,layers_list,output_file)
+    def export_layers_as_polish(self,layers_list,output_file,import_dict={}):
+        export_polish(self,layers_list,output_file,import_dict)
                         
-    def export_files_as_polish(self,files_list,output_file):
+    def export_files_as_polish(self,files_list,output_file,import_dict={}):
         layers_list=[]
         for file in files_list:
             if os.path.exists(file):
                 layer=QgsVectorLayer(file,file, "ogr")
                 if layer.isValid():
                     layers_list.append(layer)
-        export_polish(self,layers_list,output_file)
+        export_polish(self,layers_list,output_file,import_dict)
         
     # run
     def Polish(self):
