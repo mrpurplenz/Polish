@@ -15,6 +15,8 @@ from qgis import *
 from qgis.utils import *
 import re
 import random
+import sys
+import shutil
 
 def geomWrite(polish_file,pntsgeom,xform,DATA_LVL):
     Datastring=''
@@ -81,7 +83,7 @@ def export_polish(self,layers_list,output_file,import_dict):
     #Get template mp file
     template_file_name='template.mp'
     if os.path.exists(template_file_name):        
-        with open(tamplate_file_name,'r') as f:
+        with open(template_file_name,'r') as f:
             output = f.read()
         headregex = re.compile('\[IMG ID\].+?\[END-IMG ID\]',re.DOTALL)
         result = headregex.match(output)
@@ -280,6 +282,31 @@ class Polish:
                     layers_list.append(layer)
         export_polish(self,layers_list,output_file,import_dict)
         
+    def compile_by_cgpsmapper(self,mp_files_list,import_pv_dict={}):
+        from subprocess import call
+        files_list=[]
+        for file in mp_files_list:
+            if os.path.exists(file):
+                files_list.append(file)
+                print "compiling "+ file
+                #Get mp id
+                with open(file,'r') as f:
+                    output = f.read()
+                    #print output
+                ID_regex = re.compile('ID=[0-9]{8}')
+                result = ID_regex.match(output)
+                mp_header=result.group()
+                for key in ["ID"]:
+                    regex_str = re.compile(header_key+'=.+')
+                    regex_match = regex_str.search(mp_header)
+                    regex_line = regex_match.group()
+                    img_ID=(regex_line.split("="))[1]
+                    id_file=img_ID+".mp"
+                    shutil.copy(file,id_file)
+                status = call("G:\GARMIN\cGPSmapper\cgpsmapper.exe "+id_file, shell=False)
+                print status
+            else:
+                print file+" not found"        
     # run
     def Polish(self):
         QMessageBox.information(self.iface.mainWindow(), QCoreApplication.translate('Polish', "Polish"), QCoreApplication.translate('Polish', "Polish"))
