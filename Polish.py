@@ -285,28 +285,37 @@ class Polish:
     def compile_by_cgpsmapper(self,mp_files_list,import_pv_dict={}):
         from subprocess import call
         files_list=[]
-        for file in mp_files_list:
-            if os.path.exists(file):
-                files_list.append(file)
-                print "compiling "+ file
+        for fname in mp_files_list:
+            if os.path.exists(fname):
+                files_list.append(fname)
+                print "compiling "+ fname
                 #Get mp id
-                with open(file,'r') as f:
-                    output = f.read()
-                    #print output
-                ID_regex = re.compile('ID=[0-9]{8}')
-                result = ID_regex.match(output)
-                mp_header=result.group()
-                for key in ["ID"]:
-                    regex_str = re.compile(header_key+'=.+')
-                    regex_match = regex_str.search(mp_header)
-                    regex_line = regex_match.group()
-                    img_ID=(regex_line.split("="))[1]
-                    id_file=img_ID+".mp"
-                    shutil.copy(file,id_file)
-                status = call("G:\GARMIN\cGPSmapper\cgpsmapper.exe "+id_file, shell=False)
-                print status
-            else:
-                print file+" not found"        
+                with open(fname) as f:
+                    content = f.read().splitlines()
+                for file_line in content:
+                    RES_STRING='ID=[0-9]{8}'
+                    REGEX_HAYSTACK=file_line
+                    REGEX_STRING=re.compile(RES_STRING)
+                    REGEX_MATCH = REGEX_STRING.match(REGEX_HAYSTACK)
+                    if REGEX_MATCH:
+                        match_string = REGEX_MATCH.group()
+                    else:
+                        pass                  
+                img_ID=(match_string.split("="))[1]
+                print img_ID
+            id_file=str(img_ID)+".mp"
+            id_file_path=tempfile.gettempdir()+'\\'+id_file
+            shutil.copy(fname,id_file_path)
+            print id_file_path
+            cgpsmapper_path='C:\\cgpsmapper\\'
+            cgpsmapper_file_path=cgpsmapper_path+r"cgpsmapper.exe"
+            full_command=cgpsmapper_path+r"\cgpsmapper.exe "+id_file_path
+            print full_command
+            status = call(cgpsmapper_file_path+" "+id_file_path, shell=0)
+            shutil.copy(tempfile.gettempdir()+'\\'+str(img_ID)+".img",os.path.split(fname)[0]+"\\"+str(img_ID)+".img")
+            os.remove(id_file_path)
+            os.remove(tempfile.gettempdir()+'\\'+str(img_ID)+".img")
+        
     # run
     def Polish(self):
         QMessageBox.information(self.iface.mainWindow(), QCoreApplication.translate('Polish', "Polish"), QCoreApplication.translate('Polish', "Polish"))
