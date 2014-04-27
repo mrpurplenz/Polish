@@ -17,6 +17,10 @@ import re
 import random
 import sys
 import shutil
+import tempfile
+
+from os.path import basename
+from subprocess import call
 
 def geomWrite(polish_file,pntsgeom,xform,DATA_LVL):
     Datastring=''
@@ -281,6 +285,104 @@ class Polish:
                 if layer.isValid():
                     layers_list.append(layer)
         export_polish(self,layers_list,output_file,import_dict)
+        
+
+    def compile_preview_by_cgpsmapper(self,img_files_list,import_pv_dict):
+        preview_default_dictionary={}
+        preview_default_dictionary['FileName']=os.path.join(tempfile.gettempdir(),'Output_file')
+        preview_default_dictionary['MapVersion']='100'
+        preview_default_dictionary['ProductCode']='1'
+        preview_default_dictionary['FID']='222'
+        preview_default_dictionary['ID']='1'
+        preview_default_dictionary['MG']='Y'
+        preview_default_dictionary['Transparent']='Y'
+        preview_default_dictionary['Levels']='2'
+        preview_default_dictionary['Level0']='14'
+        preview_default_dictionary['Level1']='12'
+
+        preview_default_dictionary['Zoom0']='5'
+        preview_default_dictionary['Zoom1']='6'
+        preview_default_dictionary['Copy1']='Copywrite line one'
+        preview_default_dictionary['Copy2']='Copywrite line two'
+        preview_default_dictionary['MapsourceName']='QGIS generated MapsourceName'
+        preview_default_dictionary['MapSetName']='QGIS generated MapSetName'
+        preview_default_dictionary['CDSetName']='QGIS generated CDSetName'
+        preview_default_dictionary_dictionary={}
+        preview_default_dictionary_dictionary['name']='6'
+        preview_default_dictionary_dictionary['Level0RGN10']='000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000'
+        preview_default_dictionary_dictionary['Level1RGN10']='000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000'
+        preview_default_dictionary_dictionary['Level0RGN20']='111111111110000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000'
+        preview_default_dictionary_dictionary['Level1RGN20']='111111111100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000'
+        preview_default_dictionary_dictionary['Level0RGN40']='111110000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000'
+        preview_default_dictionary_dictionary['Level1RGN40']='111100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000'
+        preview_default_dictionary_dictionary['Level0RGN80']='111111111111111111111100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000'
+        preview_default_dictionary_dictionary['Level1RGN80']='111111111111111111111100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000'
+
+        for pv_key in preview_default_dictionary_dictionary:
+            try:
+                preview_default_dictionary_dictionary[pv_key]=import_pv_dict[pv_key]
+            except:
+                pass
+        
+        files_list=[]
+        temp_list=[]
+        
+        #get output path from output filename
+        new_temp_output_path=os.path.join(tempfile.gettempdir(),basename(import_pv_dict['FileName']))
+        preview_default_dictionary['FileName']=new_temp_output_path
+        output_dir=os.path.dirname(import_pv_dict['FileName'])
+        for img_file in img_files_list:
+            if os.path.exists(img_file):
+                files_list.append(img_file)
+            else:
+               print "Could not find "+img_file
+        for fname in files_list:
+            img_file_name=basename(fname)
+            img_path=os.path.dirname(fname)
+            oldfile=fname
+            newfile=os.path.join(tempfile.gettempdir(),basename(fname))
+            shutil.copy(oldfile,newfile)
+            temp_list.append(newfile)
+        #write pv file into temp directory
+        PV_FILE_FULL_PATH=os.path.join(tempfile.gettempdir(),'PV_FILE.txt')
+        with io.open(PV_FILE_FULL_PATH, 'w',1,None,None,'\r\n') as pv_file:
+            pv_file.write(u''+';Temporary preview file created by the QGIS polish class library'+'\n')
+            pv_file.write(u''+'[Map]'+'\n')
+            for key in preview_default_dictionary:
+                pv_file.write(u''+str(key)+'='+str(preview_default_dictionary[key])+'\n')
+            pv_file.write(u''+'[DICTIONARY]'+'\n')
+            for key in preview_default_dictionary_dictionary:
+                pv_file.write(u''+str(key)+'='+str(preview_default_dictionary_dictionary[key])+'\n')
+            pv_file.write(u''+'[END-DICTIONARY]'+'\n')
+            pv_file.write(u''+'[End-Map]'+'\n')
+            pv_file.write(u''+''+'\n')
+            pv_file.write(u''+'[Files]'+'\n')
+            for temp_file in temp_list:
+                pv_file.write(u''+'img='+temp_file+'\n')
+            pv_file.write(u''+'[END-Files]'+'\n')
+            
+        cpreview_path='C:\\cgpsmapper\\'
+        cpreview_file_path=cpreview_path+r"cpreview.exe"
+        full_command=cpreview_file_path+" "+PV_FILE_FULL_PATH
+        status = call(cpreview_file_path+" "+PV_FILE_FULL_PATH, shell=0)
+        suffix_list=[]
+        suffix_list.append('.MDX')
+        suffix_list.append('.mp')
+        suffix_list.append('.reg')
+        suffix_list.append('.TDB')
+        for suffix in suffix_list:
+            shutil.copy(preview_default_dictionary['FileName']+suffix,os.path.join(output_dir,basename(preview_default_dictionary['FileName']))+suffix)
+            os.remove(preview_default_dictionary['FileName']+suffix)
+        for temp_file in temp_list:
+            os.remove(temp_file)
+        os.remove(PV_FILE_FULL_PATH)
+        preview_file_path = os.path.join(output_dir,basename(preview_default_dictionary['FileName'])+'.mp')
+        cgpsmapper_path='C:\\cgpsmapper\\'
+        cgpsmapper_file_path=cgpsmapper_path+r"cgpsmapper.exe"
+        full_command=os.path.join(cgpsmapper_path,"cgpsmapper.exe")+" "+preview_file_path
+        print full_command
+        status = call(cgpsmapper_file_path+" "+preview_file_path, shell=0)
+        
         
     def compile_by_cgpsmapper(self,mp_files_list,import_pv_dict={}):
         from subprocess import call
