@@ -361,8 +361,8 @@ class Polish:
                 pv_file.write(u''+'img='+temp_file+'\n')
             pv_file.write(u''+'[END-Files]'+'\n')
             
-        cpreview_path='C:\\cgpsmapper\\'
-        cpreview_file_path=cpreview_path+r"cpreview.exe"
+        cpreview_path=r'C:\cgpsmapper'
+        cpreview_file_path=os.path.join(cpreview_path,r'cpreview.exe')
         full_command=cpreview_file_path+" "+PV_FILE_FULL_PATH
         status = call(cpreview_file_path+" "+PV_FILE_FULL_PATH, shell=0)
         suffix_list=[]
@@ -377,8 +377,8 @@ class Polish:
             os.remove(temp_file)
         os.remove(PV_FILE_FULL_PATH)
         preview_file_path = os.path.join(output_dir,basename(preview_default_dictionary['FileName'])+'.mp')
-        cgpsmapper_path='C:\\cgpsmapper\\'
-        cgpsmapper_file_path=cgpsmapper_path+r"cgpsmapper.exe"
+        cgpsmapper_path=r'C:\cgpsmapper'
+        cgpsmapper_file_path=os.path.join(cgpsmapper_path,r'cgpsmapper.exe')
         full_command=os.path.join(cgpsmapper_path,"cgpsmapper.exe")+" "+preview_file_path
         print full_command
         status = call(cgpsmapper_file_path+" "+preview_file_path, shell=0)
@@ -412,7 +412,7 @@ class Polish:
                         #img_ID=(regex_line.split("="))[1]
                 id_file=img_ID+".mp"
                 shutil.copy(file,id_file)
-                status = call("G:\GARMIN\cGPSmapper\cgpsmapper.exe "+id_file, shell=False)
+                status = call(cgpsmapper_file_path+' '+id_file, shell=False)
                 print status
             else:
                 print file+" not found"        
@@ -433,14 +433,14 @@ class Polish:
             id_file_path=tempfile.gettempdir()+'\\'+id_file
             shutil.copy(fname,id_file_path)
             print id_file_path
-            cgpsmapper_path='C:\\cgpsmapper\\'
-            cgpsmapper_file_path=cgpsmapper_path+r"cgpsmapper.exe"
-            full_command=cgpsmapper_path+r"\cgpsmapper.exe "+id_file_path
+            cgpsmapper_path=r'C:\cgpsmapper'
+            cgpsmapper_file_path=os.path.join(cgpsmapper_path,'cgpsmapper.exe')
+            full_command=os.path.join(cgpsmapper_path,'cgpsmapper.exe')+' '+id_file_path
             print full_command
             status = call(cgpsmapper_file_path+" "+id_file_path, shell=0)
-            shutil.copy(tempfile.gettempdir()+'\\'+str(img_ID)+".img",os.path.split(fname)[0]+"\\"+str(img_ID)+".img")
+            shutil.copy(os.path.join(tempfile.gettempdir(),str(img_ID)+".img"),os.path.join(os.path.split(fname)[0],str(img_ID)+".img"))
             os.remove(id_file_path)
-            os.remove(tempfile.gettempdir()+'\\'+str(img_ID)+".img")
+            os.remove(os.path.join(tempfile.gettempdir(),str(img_ID)+".img"))
         
     # run
     def Polish(self):
