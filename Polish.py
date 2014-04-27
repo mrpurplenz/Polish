@@ -293,16 +293,23 @@ class Polish:
                 with open(file,'r') as f:
                     output = f.read()
                     #print output
-                ID_regex = re.compile('ID=[0-9]{8}')
-                result = ID_regex.match(output)
-                mp_header=result.group()
-                for key in ["ID"]:
-                    regex_str = re.compile(header_key+'=.+')
-                    regex_match = regex_str.search(mp_header)
-                    regex_line = regex_match.group()
-                    img_ID=(regex_line.split("="))[1]
-                    id_file=img_ID+".mp"
-                    shutil.copy(file,id_file)
+                img_ID=random.randint(10000000,99999999)
+                for mp_line in output:
+                    print mp_line
+                    #ID_regex = re.compile('ID=[0-9]{8}')
+                    result = re.match('ID=[0-9]{8}', mp_line)
+                        #result = ID_regex.match(output):
+                    if result!=None:
+                        result_img_ID=result.group()
+                        img_ID=(result_img_ID.split("="))[1]
+                        print img_ID
+                    #for key in ["ID"]:
+                        #regex_str = re.compile(header_key+'=.+')
+                        #regex_match = regex_str.search(mp_header)
+                        #regex_line = regex_match.group()
+                        #img_ID=(regex_line.split("="))[1]
+                id_file=img_ID+".mp"
+                shutil.copy(file,id_file)
                 status = call("G:\GARMIN\cGPSmapper\cgpsmapper.exe "+id_file, shell=False)
                 print status
             else:
