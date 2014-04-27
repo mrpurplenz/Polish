@@ -318,9 +318,9 @@ class Polish:
         preview_default_dictionary_dictionary['Level0RGN80']='111111111111111111111100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000'
         preview_default_dictionary_dictionary['Level1RGN80']='111111111111111111111100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000'
 
-        for pv_key in preview_default_dictionary_dictionary:
+        for pv_key in preview_default_dictionary:
             try:
-                preview_default_dictionary_dictionary[pv_key]=import_pv_dict[pv_key]
+                preview_default_dictionary[pv_key]=import_pv_dict[pv_key]
             except:
                 pass
         
@@ -392,7 +392,6 @@ class Polish:
                 files_list.append(fname)
                 print "compiling "+ fname
                 #Get mp id
-<<<<<<< HEAD
                 with open(file,'r') as f:
                     output = f.read()
                     #print output
@@ -417,7 +416,6 @@ class Polish:
                 print status
             else:
                 print file+" not found"        
-=======
                 with open(fname) as f:
                     content = f.read().splitlines()
                 for file_line in content:
@@ -444,7 +442,6 @@ class Polish:
             os.remove(id_file_path)
             os.remove(tempfile.gettempdir()+'\\'+str(img_ID)+".img")
         
->>>>>>> 0c43b4e6d701a8fea0abc5f1fcd087fd8e4ea211
     # run
     def Polish(self):
         QMessageBox.information(self.iface.mainWindow(), QCoreApplication.translate('Polish', "Polish"), QCoreApplication.translate('Polish', "Polish"))
