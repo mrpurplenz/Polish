@@ -186,7 +186,7 @@ def export_polish(self,layers_list,output_file,import_dict):
                     print "attributes are:"
                     i=0
                     for attribute in attribute_list:
-                        print "id "+str(i)+" is "+str(attribute.name())
+                        print "id "+str(i)+" is "+str(attribute.name())+" and has a value of "+str(attrs[i])
                         i=i+1
                     END_LVL_val=1
                     print "level set to "+str(END_LVL_val)
