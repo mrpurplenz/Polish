@@ -392,12 +392,12 @@ class Polish:
                 files_list.append(fname)
                 print "compiling "+ fname
                 #Get mp id
-                with open(file,'r') as f:
+                with open(fname,'r') as f:
                     output = f.read()
                     #print output
                 img_ID=random.randint(10000000,99999999)
                 for mp_line in output:
-                    print mp_line
+                    #print mp_line
                     #ID_regex = re.compile('ID=[0-9]{8}')
                     result = re.match('ID=[0-9]{8}', mp_line)
                         #result = ID_regex.match(output):
@@ -411,7 +411,7 @@ class Polish:
                         #regex_line = regex_match.group()
                         #img_ID=(regex_line.split("="))[1]
                 id_file=img_ID+".mp"
-                shutil.copy(file,id_file)
+                shutil.copy(fname,id_file)
                 status = call(cgpsmapper_file_path+' '+id_file, shell=False)
                 print status
             else:
