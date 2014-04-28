@@ -387,7 +387,7 @@ class Polish:
         status = call(cgpsmapper_file_path+" "+preview_file_path, shell=0)
         
         
-    def compile_by_cgpsmapper(self,mp_files_list,import_pv_dict={}):
+    def compile_by_cgpsmapper(self,mp_files_list,cgpsmapper_path,import_pv_dict={}):
         from subprocess import call
         files_list=[]
         for fname in mp_files_list:
@@ -412,14 +412,13 @@ class Polish:
             id_file_path=tempfile.gettempdir()+'\\'+id_file
             shutil.copy(fname,id_file_path)
             print id_file_path
-            cgpsmapper_path='C:\\cgpsmapper\\'
-            cgpsmapper_file_path=cgpsmapper_path+r"cgpsmapper.exe"
+            cgpsmapper_file_path=os.path.join(cgpsmapper_path,"cgpsmapper.exe")
             full_command=cgpsmapper_path+r"\cgpsmapper.exe "+id_file_path
             print full_command
             status = call(cgpsmapper_file_path+" "+id_file_path, shell=0)
-            shutil.copy(tempfile.gettempdir()+'\\'+str(img_ID)+".img",os.path.split(fname)[0]+"\\"+str(img_ID)+".img")
+            shutil.copy(os.path.join(tempfile.gettempdir(),str(img_ID)+".img"),os.path.split(fname)[0]+"\\"+str(img_ID)+".img")
             os.remove(id_file_path)
-            os.remove(tempfile.gettempdir()+'\\'+str(img_ID)+".img")
+            os.remove(os.path.join(tempfile.gettempdir(),str(img_ID)+".img"))
         
     # run
     def Polish(self):
