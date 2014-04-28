@@ -416,7 +416,10 @@ class Polish:
             full_command=cgpsmapper_path+r"\cgpsmapper.exe "+id_file_path
             print full_command
             status = call(cgpsmapper_file_path+" "+id_file_path, shell=0)
-            shutil.copy(os.path.join(tempfile.gettempdir(),str(img_ID)+".img"),os.path.split(fname)[0]+"\\"+str(img_ID)+".img")
+            try:
+                shutil.copy(os.path.join(tempfile.gettempdir(),str(img_ID)+".img"),os.path.join(os.path.split(fname)[0],str(img_ID)+".img"))
+            except:
+                print "unable to complete compliation for "+ str(img_ID)+".img"
             os.remove(id_file_path)
             os.remove(os.path.join(tempfile.gettempdir(),str(img_ID)+".img"))
         
