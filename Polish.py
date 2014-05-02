@@ -38,7 +38,7 @@ def geomWrite(polish_file,pntsgeom,xform,DATA_LVL,isline):
         Datastring=Datastring+str(newQgsPoint.y())+','+str(newQgsPoint.x())+')'
         if isline:
             pointcount=pointcount+1
-            if pointcount=255:
+            if pointcount==255:
                 pointcount=0
                 firstpoint=0
                 polish_file.write(u''+Datastring+'\n')
