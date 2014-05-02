@@ -48,7 +48,7 @@ def geomWrite(polish_file,pntsgeom,xform,DATA_LVL,isline):
         polish_file.write(u''+Datastring+'\n')
 
 def writepolishobject(polish_file,outputtype,MP_TYPE_val,MP_NAME_val,END_LVL_val,DATA_LVL,xform,datalinesgeom):
-    if outputtype='[POLYLINE]':
+    if outputtype=='[POLYLINE]':
     	isline=True
     polish_file.write(u''+outputtype+'\n')
     polish_file.write(u'Type='+str(MP_TYPE_val)+'\n')                    
