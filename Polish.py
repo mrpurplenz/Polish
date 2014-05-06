@@ -21,31 +21,49 @@ import tempfile
 
 from os.path import basename
 from subprocess import call
+<<<<<<< HEAD
 def myver():
     return "0.0.1"
     
 def geomWrite(polish_file,pntsgeom,xform,DATA_LVL):
+=======
+
+def geomWrite(polish_file,pntsgeom,xform,DATA_LVL,isline):
+>>>>>>> 5ce8b63d6647b15a15a597fc09cdee26a525b860
     Datastring=''
     firstpoint=0
+    pointcount=0
+    ok_to_write_data=True
     for myQgsPoint in pntsgeom:
         newQgsPoint=xform.transform(myQgsPoint)
         if firstpoint==0:
             firstpoint=1
-            Datastring=Datastring+'Data'+DATA_LVL+'=('
+            ok_to_write_data=True
+            Datastring=Datastring+'Data'+DATA_LVL+'=('+Datastring
         else:
             Datastring=Datastring+',('
-        Datastring=Datastring+str(newQgsPoint.y())+','+str(newQgsPoint.x())
-        Datastring=Datastring+')'
-    polish_file.write(u''+Datastring+'\n')
+        Datastring=Datastring+str(newQgsPoint.y())+','+str(newQgsPoint.x())+')'
+        if isline:
+            pointcount=pointcount+1
+            if pointcount==255:
+                pointcount=0
+                firstpoint=0
+                polish_file.write(u''+Datastring+'\n')
+                Datastring='('+str(newQgsPoint.y())+','+str(newQgsPoint.x())+')'
+                ok_to_write_data=False
+    if ok_to_write_data:
+        polish_file.write(u''+Datastring+'\n')
 
 def writepolishobject(polish_file,outputtype,MP_TYPE_val,MP_NAME_val,END_LVL_val,DATA_LVL,xform,datalinesgeom):
+    if outputtype=='[POLYLINE]':
+    	isline=True
     polish_file.write(u''+outputtype+'\n')
     polish_file.write(u'Type='+str(MP_TYPE_val)+'\n')                    
     if MP_NAME_val!='':
         polish_file.write(u'Label='+str(MP_NAME_val)+'\n')
     polish_file.write(u'EndLevel='+str(END_LVL_val)+'\n')
     for datalinegeom in datalinesgeom:
-        geomWrite(polish_file,datalinegeom,xform,DATA_LVL)
+        geomWrite(polish_file,datalinegeom,xform,DATA_LVL,isline)
     polish_file.write(u'[END]\n\n')
     
 def default_mp_header():
@@ -239,7 +257,7 @@ def export_polish(self,layers_list,output_file,import_dict):
                     print "attributes are:"
                     i=0
                     for attribute in attribute_list:
-                        print "id "+str(i)+" is "+str(attribute.name())
+                        print "id "+str(i)+" is "+str(attribute.name())+" and has a value of "+str(attrs[i])
                         i=i+1
                     END_LVL_val=1
                     print "level set to "+str(END_LVL_val)
