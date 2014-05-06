@@ -21,15 +21,10 @@ import tempfile
 
 from os.path import basename
 from subprocess import call
-<<<<<<< HEAD
 def myver():
     return "0.0.1"
     
-def geomWrite(polish_file,pntsgeom,xform,DATA_LVL):
-=======
-
 def geomWrite(polish_file,pntsgeom,xform,DATA_LVL,isline):
->>>>>>> 5ce8b63d6647b15a15a597fc09cdee26a525b860
     Datastring=''
     firstpoint=0
     pointcount=0
@@ -90,7 +85,7 @@ def default_mp_header():
     default_header['TreMargin']=0.00000
     default_header['RgnLimit']=1024
     default_header['SimplifyLevel']=1
-     default_header['Preprocess']='F'   
+    default_header['Preprocess']='F'   
 
     default_header['Levels']=5
     default_header['Level0']=24
@@ -362,10 +357,10 @@ class Polish:
         preview_default_dictionary=default_pv_header()
         preview_default_dictionary_dictionary=preview_default_dictionary['preview_default_dictionary_dictionary']
 
-	#print "Updating preview_default_dictionary"
+        #print "Updating preview_default_dictionary"
         for pv_key in preview_default_dictionary:
             try:
-            	#print "attempting to change "+pv_key+" to "+import_pv_dict[pv_key]
+                #print "attempting to change "+pv_key+" to "+import_pv_dict[pv_key]
                 preview_default_dictionary[pv_key]=import_pv_dict[pv_key]
                 
             except:
@@ -481,8 +476,6 @@ class Polish:
     def Polish(self):
         QMessageBox.information(self.iface.mainWindow(), QCoreApplication.translate('Polish', "Polish"), QCoreApplication.translate('Polish', "Polish"))
         return
-
-
 
 
 if __name__ == "__main__":
