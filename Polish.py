@@ -143,9 +143,6 @@ def default_pv_header():
     return preview_default_dictionary
     
 def export_polish(self,layers_list,output_file,import_dict):
-    #Build PASS polish header dictionary
-    pass_header = {}
-    pass_header['Name']='Map name'
 
     #Build DEFAULT polish header dictionary
     polishexporter_ver=myver
@@ -352,6 +349,7 @@ class Polish:
                     layers_list.append(layer)
         export_polish(self,layers_list,output_file,import_dict)
         
+    def import polish_files_to_spatialite(self,files_list):
 
     def compile_preview_by_cgpsmapper(self,img_files_list,import_pv_dict):
         preview_default_dictionary=default_pv_header()
