@@ -349,7 +349,8 @@ class Polish:
                     layers_list.append(layer)
         export_polish(self,layers_list,output_file,import_dict)
         
-    def import polish_files_to_spatialite(self,files_list):
+    def import_polish_files_to_spatialite(self,files_list):
+        pass
 
     def compile_preview_by_cgpsmapper(self,img_files_list,import_pv_dict):
         preview_default_dictionary=default_pv_header()
