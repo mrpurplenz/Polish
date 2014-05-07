@@ -422,7 +422,10 @@ class Polish:
         full_command=os.path.join(cgpsmapper_path,"cgpsmapper.exe")+" "+preview_file_path
         print full_command
         status = call(cgpsmapper_file_path+" "+preview_file_path, shell=0)
-     
+        
+    def get_default_mp_header(self):
+        default_header = default_mp_header()
+        return default_header
      
     def print_default_mp_header(self):
         default_header = default_mp_header()
