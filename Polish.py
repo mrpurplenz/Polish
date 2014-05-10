@@ -18,6 +18,7 @@ import random
 import sys
 import shutil
 import tempfile
+import platform
 
 from os.path import basename
 from subprocess import call
@@ -31,7 +32,22 @@ def myver():
 def cGPSmapper_path():
     return r'C:\Program Files (x86)\cGPSmapper'
     pass
-    pass
+
+def get_WINEpath():
+    winePath = None
+    mypathlist=os.environ["PATH"].split(":")
+    for directory in mypathlist:
+        testWinePath = os.path.join(directory, "wine")
+        if os.path.exists(testWinePath) and os.access(testWinePath, os.R_OK | os.X_OK):
+            winePath = executablePath
+            break
+    return winePath
+
+def isLinux():
+    if platform.system()=='Linux':
+        return True
+    else
+        return False
     
 def geomWrite(polish_file,pntsgeom,xform,DATA_LVL,isline):
     Datastring=''
