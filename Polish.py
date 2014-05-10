@@ -28,6 +28,9 @@ def verbose():
 def myver():
     return "0.0.1"
     
+def cGPSmapper_path():
+    return r'C:\Program Files (x86)\cGPSmapper'
+    
 def geomWrite(polish_file,pntsgeom,xform,DATA_LVL,isline):
     Datastring=''
     firstpoint=0
