@@ -30,6 +30,7 @@ def myver():
     
 def cGPSmapper_path():
     return r'C:\Program Files (x86)\cGPSmapper'
+    pass
     
 def geomWrite(polish_file,pntsgeom,xform,DATA_LVL,isline):
     Datastring=''
