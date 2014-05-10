@@ -46,7 +46,7 @@ def get_WINEpath():
 def isLinux():
     if platform.system()=='Linux':
         return True
-    else
+    else:
         return False
     
 def geomWrite(polish_file,pntsgeom,xform,DATA_LVL,isline):
@@ -389,7 +389,11 @@ class Polish:
     def import_polish_files_to_spatialite(self,files_list):
         pass
 
+
     def compile_preview_by_cgpsmapper(self,img_files_list,import_pv_dict):
+        if isLinux():
+            print "Running in linux checking for WINE"
+            
         preview_default_dictionary=default_pv_header()
         preview_default_dictionary_dictionary=preview_default_dictionary['preview_default_dictionary_dictionary']
 
