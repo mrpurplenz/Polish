@@ -19,7 +19,7 @@ import sys
 import shutil
 import tempfile
 import platform
-
+import getpass
 from os.path import basename
 from subprocess import call
 
@@ -29,17 +29,18 @@ def verbose():
 def myver():
     return "0.0.1"
     
-def cGPSmapper_path():
+def get_cGPSmapper_path():
     return r'C:\Program Files (x86)\cGPSmapper'
-    pass
+
 
 def get_WINEpath():
+    print "checkin wine path now"
     winePath = None
     mypathlist=os.environ["PATH"].split(":")
     for directory in mypathlist:
         testWinePath = os.path.join(directory, "wine")
         if os.path.exists(testWinePath) and os.access(testWinePath, os.R_OK | os.X_OK):
-            winePath = executablePath
+            winePath = testWinePath
             break
     return winePath
 
@@ -168,9 +169,6 @@ def default_pv_header():
     preview_default_dictionary_dictionary['Level1RGN80']='111111111111111111111100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000'
     preview_default_dictionary['preview_default_dictionary_dictionary']= preview_default_dictionary_dictionary
     return preview_default_dictionary
-    
-
-    
     
 def export_polish(self,layers_list,output_file,import_dict):
 
@@ -391,8 +389,15 @@ class Polish:
 
 
     def compile_preview_by_cgpsmapper(self,img_files_list,import_pv_dict):
+        cgpsmapper_path=get_cGPSmapper_path()
+        #cgpsmapper_file_path=os.path.join(cgpsmapper_path,"cgpsmapper.exe")
+        #cpreview_file_path=os.path.join(cgpsmapper_path,"cpreview.exe")
+        cgpsmapper_file_path=cgpsmapper_path+"\\"+"cgpsmapper.exe"
+        cpreview_file_path=cgpsmapper_path+"\\"+"cpreview.exe"
         if isLinux():
-            print "Running in linux checking for WINE"
+            if verbose(): print "Running in linux checking for WINE"
+            if verbose(): print "Wine path is "+str(get_WINEpath())
+            #status = call(r"wine '"+cgpsmapper_file_path+"'",shell=True)
             
         preview_default_dictionary=default_pv_header()
         preview_default_dictionary_dictionary=preview_default_dictionary['preview_default_dictionary_dictionary']
@@ -417,7 +422,7 @@ class Polish:
             if os.path.exists(img_file):
                 files_list.append(img_file)
             else:
-               print "Could not find "+img_file
+               if verbose(): print "Could not find "+img_file
         for fname in files_list:
             img_file_name=basename(fname)
             img_path=os.path.dirname(fname)
@@ -442,11 +447,16 @@ class Polish:
             for temp_file in temp_list:
                 pv_file.write(u''+'img='+temp_file+'\n')
             pv_file.write(u''+'[END-Files]'+'\n')
-            
-        cpreview_path='C:\\cgpsmapper\\'
-        cpreview_file_path=cpreview_path+r"cpreview.exe"
+
         full_command=cpreview_file_path+" "+PV_FILE_FULL_PATH
-        status = call(cpreview_file_path+" "+PV_FILE_FULL_PATH, shell=0)
+        if islinux():
+            username=getpass.getuser()
+            status = call("rm -rf /home/"+username+"/.wine/drive_c/users/"+username+"/BakTemp", shell=True)
+            status = call("mv /home/"+username+"/.wine/drive_c/users/"+username+"/Temp ~/.wine/drive_c/users/"+username+"/BakTemp", shell=True)
+            status = call("ln -s /tmp /home/"+username+"/.wine/drive_c/users/"+username+"/Temp", shell=True)
+            PV_FILE_FULL_PATH=r"C:/users/"+username+r"/Temp/PV_FILE.txt"
+            full_command=r"wine '"+cpreview_file_path+" "+PV_FILE_FULL_PATH+"'"
+        status = call(full_command, shell=True)
         suffix_list=[]
         suffix_list.append('.MDX')
         suffix_list.append('.mp')
@@ -459,10 +469,9 @@ class Polish:
             os.remove(temp_file)
         os.remove(PV_FILE_FULL_PATH)
         preview_file_path = os.path.join(output_dir,basename(preview_default_dictionary['FileName'])+'.mp')
-        cgpsmapper_path='C:\\cgpsmapper\\'
-        cgpsmapper_file_path=cgpsmapper_path+r"cgpsmapper.exe"
-        full_command=os.path.join(cgpsmapper_path,"cgpsmapper.exe")+" "+preview_file_path
-        print full_command
+        
+        full_command=cgpsmapper_path+"\\"+"cgpsmapper.exe"+" "+preview_file_path
+        if verbose(): print full_command
         status = call(cgpsmapper_file_path+" "+preview_file_path, shell=0)
         
     def get_default_mp_header(self):
@@ -480,13 +489,22 @@ class Polish:
             print str(header_key)+' = '+str(default_header[header_key]  )
         
     def compile_by_cgpsmapper(self,mp_files_list,cgpsmapper_path,import_pv_dict={}):
-        from subprocess import call
+        if isLinux():
+            if verbose(): print "Running in linux checking for WINE"
+            if verbose(): print "Wine path is "+str(get_WINEpath())
+        username=getpass.getuser()    
+        cgpsmapper_path=get_cGPSmapper_path()
+        cgpsmapper_file_path=cgpsmapper_path+"\\"+"cgpsmapper.exe"
+        cpreview_file_path=cgpsmapper_path+"\\"+"cpreview.exe"
+        os_temp=tempfile.gettempdir()
+        wine_temp_win="C:\\users\\"+username+ "\\Temp\\" 
+        wine_temp_unix=r"/home/"+username+r"/.wine/drive_c/users/"+username+r"/Temp"
+        
         files_list=[]
         for fname in mp_files_list:
             if os.path.exists(fname):
                 files_list.append(fname)
                 print "compiling "+ fname
-                #Get mp id
                 with open(fname) as f:
                     content = f.read().splitlines()
                 for file_line in content:
@@ -499,22 +517,62 @@ class Polish:
                     else:
                         pass                  
                 img_ID=(match_string.split("="))[1]
-                print img_ID
+                if verbose(): print img_ID
             id_file=str(img_ID)+".mp"
-            id_file_path=tempfile.gettempdir()+'\\'+id_file
-            shutil.copy(fname,id_file_path)
-            print id_file_path
-            cgpsmapper_file_path=os.path.join(cgpsmapper_path,"cgpsmapper.exe")
-            full_command=cgpsmapper_path+r"\cgpsmapper.exe "+id_file_path
-            print full_command
-            status = call(cgpsmapper_file_path+" "+id_file_path, shell=0)
+          
+            os_id_file_path=os.path.join(tempfile.gettempdir(),id_file)
+            
+            
+            if isLinux():
+                #shift wine temp path to os temp path
+                wine_temp_unix_bak = "/home/"+username+"/.wine/drive_c/users/"+username+"/TempBak"
+                try:
+                    status = call("rm -rf " + wine_temp_unix_bak, shell=True)
+                except:
+                    pass
+                status = call(r"mv " + wine_temp_unix + r" " + wine_temp_unix_bak, shell=True)
+                status = call("ln -s /tmp "+wine_temp_unix, shell=True)
+                
+                #Write Linux wine compile command
+                wine_id_file_path=r"C:/users/"+username+r"/Temp/"+id_file
+                Linux_full_command=r"wine '"+cgpsmapper_file_path+"' '"+wine_id_file_path+"'"
+                if verbose(): print Linux_full_command
+            else:
+                win_full_command=cgpsmapper_file_path+" "+os_id_file_path
+                if verbose(): print win_full_command
+            
+            shutil.copy(fname,os_id_file_path)
+            
+            
+            #Run cGPSmapper compile commands
+            if isLinux:
+                status = call(Linux_full_command, shell=True)
+                status = call("rm -rf " + wine_temp_unix, shell=True)
+                status = call(r"mv " + wine_temp_unix_bak + r" " + wine_temp_unix, shell=True)
+            else:
+                status = call(win_full_command, shell=True)
+            
+            #Copy compiled files to oiginal mp file path
             try:
                 shutil.copy(os.path.join(tempfile.gettempdir(),str(img_ID)+".img"),os.path.join(os.path.split(fname)[0],str(img_ID)+".img"))
+                os.remove(os.path.join(tempfile.gettempdir(),str(img_ID)+".img"))
+                pass
             except:
                 print "unable to complete compliation for "+ str(img_ID)+".img"
-            os.remove(id_file_path)
-            os.remove(os.path.join(tempfile.gettempdir(),str(img_ID)+".img"))
-        
+            
+            try:
+                shutil.copy(os.path.join(tempfile.gettempdir(),str(img_ID)+".img.idx"),os.path.join(os.path.split(fname)[0],str(img_ID)+".img.idx"))
+                os.remove(os.path.join(tempfile.gettempdir(),str(img_ID)+".img.idx"))
+                pass
+            except:
+                print "No idx file generated"
+            
+            try:
+                os.remove(os.path.join(tempfile.gettempdir(),str(img_ID)+".mp"))
+                pass
+            except:
+                pass
+                
     # run
     def Polish(self):
         QMessageBox.information(self.iface.mainWindow(), QCoreApplication.translate('Polish', "Polish"), QCoreApplication.translate('Polish', "Polish"))
