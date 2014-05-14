@@ -416,13 +416,17 @@ class Polish:
         
         #get output path from output filename
         new_temp_output_path=os.path.join(tempfile.gettempdir(),basename(import_pv_dict['FileName']))
-        preview_default_dictionary['FileName']=new_temp_output_path
         output_dir=os.path.dirname(import_pv_dict['FileName'])
+        preview_default_dictionary['FileName']=new_temp_output_path
+        
+        
+        
         for img_file in img_files_list:
             if os.path.exists(img_file):
                 files_list.append(img_file)
             else:
                if verbose(): print "Could not find "+img_file
+               
         for fname in files_list:
             img_file_name=basename(fname)
             img_path=os.path.dirname(fname)
@@ -430,6 +434,7 @@ class Polish:
             newfile=os.path.join(tempfile.gettempdir(),basename(fname))
             shutil.copy(oldfile,newfile)
             temp_list.append(newfile)
+            
         #write pv file into temp directory
         PV_FILE_FULL_PATH=os.path.join(tempfile.gettempdir(),'PV_FILE.txt')
         with io.open(PV_FILE_FULL_PATH, 'w',1,None,None,'\r\n') as pv_file:
@@ -450,12 +455,11 @@ class Polish:
 
         full_command=cpreview_file_path+" "+PV_FILE_FULL_PATH
         if islinux():
-            username=getpass.getuser()
-            status = call("rm -rf /home/"+username+"/.wine/drive_c/users/"+username+"/BakTemp", shell=True)
-            status = call("mv /home/"+username+"/.wine/drive_c/users/"+username+"/Temp ~/.wine/drive_c/users/"+username+"/BakTemp", shell=True)
-            status = call("ln -s /tmp /home/"+username+"/.wine/drive_c/users/"+username+"/Temp", shell=True)
-            PV_FILE_FULL_PATH=r"C:/users/"+username+r"/Temp/PV_FILE.txt"
-            full_command=r"wine '"+cpreview_file_path+" "+PV_FILE_FULL_PATH+"'"
+            WINE_PV_FILE_FULL_PATH="Z:"+PV_FILE_FULL_PATH
+            WINE_PV_FILE_FULL_PATH=WINE_PV_FILE_FULL_PATH.replace("/","\\")
+            WINE_cpreview_file_path="Z:"+cpreview_file_path
+            WINE_cpreview_file_path=WINE_cpreview_file_path.replace("/","\\")
+            full_command=r"wine '"+WINE_cpreview_file_path+" "+WINE_PV_FILE_FULL_PATH+"'"
         status = call(full_command, shell=True)
         suffix_list=[]
         suffix_list.append('.MDX')
@@ -469,10 +473,17 @@ class Polish:
             os.remove(temp_file)
         os.remove(PV_FILE_FULL_PATH)
         preview_file_path = os.path.join(output_dir,basename(preview_default_dictionary['FileName'])+'.mp')
-        
         full_command=cgpsmapper_path+"\\"+"cgpsmapper.exe"+" "+preview_file_path
+        
+        if islinux():
+            WINE_cgpsmapper_path="Z:"+cgpsmapper_path
+            WINE_cgpsmapper_path=WINE_cgpsmapper_path.replace("/","\\")
+            WINE_preview_file_path="Z:"+preview_file_path
+            WINE_preview_file_path=WINE_preview_file_path.replace("/","\\")
+            full_command=r"wine '"+WINE_cgpsmapper_file_path+" "+WINE_preview_file_path+"'"
+
         if verbose(): print full_command
-        status = call(cgpsmapper_file_path+" "+preview_file_path, shell=0)
+        status = call(full_command, shell=True)
         
     def get_default_mp_header(self):
         default_header = default_mp_header()
