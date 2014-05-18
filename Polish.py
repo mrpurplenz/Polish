@@ -454,12 +454,14 @@ class Polish:
             pv_file.write(u''+'[END-Files]'+'\n')
 
         full_command=cpreview_file_path+" "+PV_FILE_FULL_PATH
-        if islinux():
+        if verbose(): print full_command        
+        if isLinux():
             WINE_PV_FILE_FULL_PATH="Z:"+PV_FILE_FULL_PATH
             WINE_PV_FILE_FULL_PATH=WINE_PV_FILE_FULL_PATH.replace("/","\\")
-            WINE_cpreview_file_path="Z:"+cpreview_file_path
-            WINE_cpreview_file_path=WINE_cpreview_file_path.replace("/","\\")
-            full_command=r"wine '"+WINE_cpreview_file_path+" "+WINE_PV_FILE_FULL_PATH+"'"
+            WINE_cpreview_file_path=cpreview_file_path
+            #WINE_cpreview_file_path=WINE_cpreview_file_path.replace("/","\\")
+            full_command=r"wine '"+WINE_cpreview_file_path+"' '"+WINE_PV_FILE_FULL_PATH+"'"
+        if verbose(): print full_command        
         status = call(full_command, shell=True)
         suffix_list=[]
         suffix_list.append('.MDX')
@@ -471,16 +473,18 @@ class Polish:
             os.remove(preview_default_dictionary['FileName']+suffix)
         for temp_file in temp_list:
             os.remove(temp_file)
+            pass
         os.remove(PV_FILE_FULL_PATH)
         preview_file_path = os.path.join(output_dir,basename(preview_default_dictionary['FileName'])+'.mp')
         full_command=cgpsmapper_path+"\\"+"cgpsmapper.exe"+" "+preview_file_path
         
-        if islinux():
-            WINE_cgpsmapper_path="Z:"+cgpsmapper_path
-            WINE_cgpsmapper_path=WINE_cgpsmapper_path.replace("/","\\")
+        if isLinux():
+            WINE_cgpsmapper_path=cgpsmapper_path
+            WINE_cgpsmapper_file_path=cgpsmapper_path+"\\"+"cgpsmapper.exe"
+            #WINE_cgpsmapper_path=WINE_cgpsmapper_path.replace("/","\\")
             WINE_preview_file_path="Z:"+preview_file_path
             WINE_preview_file_path=WINE_preview_file_path.replace("/","\\")
-            full_command=r"wine '"+WINE_cgpsmapper_file_path+" "+WINE_preview_file_path+"'"
+            full_command=r"wine '"+WINE_cgpsmapper_file_path+"' '"+WINE_preview_file_path+"'"
 
         if verbose(): print full_command
         status = call(full_command, shell=True)
