@@ -461,7 +461,9 @@ class Polish:
             WINE_cpreview_file_path=cpreview_file_path
             #WINE_cpreview_file_path=WINE_cpreview_file_path.replace("/","\\")
             full_command=r"wine '"+WINE_cpreview_file_path+"' '"+WINE_PV_FILE_FULL_PATH+"'"
-        if verbose(): print full_command        
+            if verbose(): print full_command
+        else:
+            if verbose(): print full_command
         status = call(full_command, shell=True)
         suffix_list=[]
         suffix_list.append('.MDX')
@@ -485,7 +487,7 @@ class Polish:
             WINE_preview_file_path="Z:"+preview_file_path
             WINE_preview_file_path=WINE_preview_file_path.replace("/","\\")
             full_command=r"wine '"+WINE_cgpsmapper_file_path+"' '"+WINE_preview_file_path+"'"
-
+     
         if verbose(): print full_command
         status = call(full_command, shell=True)
         
