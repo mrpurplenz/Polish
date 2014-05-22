@@ -66,7 +66,8 @@ def geomWrite(polish_file,pntsgeom,xform,DATA_LVL,isline):
         Datastring=Datastring+str(newQgsPoint.y())+','+str(newQgsPoint.x())+')'
         if isline:
             pointcount=pointcount+1
-            if pointcount==255:
+            if False:
+            #if pointcount==255:
                 pointcount=0
                 firstpoint=0
                 polish_file.write(u''+Datastring+'\n')
@@ -535,61 +536,62 @@ class Polish:
                         pass                  
                 img_ID=(match_string.split("="))[1]
                 if verbose(): print img_ID
-            id_file=str(img_ID)+".mp"
+                id_file=str(img_ID)+".mp"
           
-            os_id_file_path=os.path.join(tempfile.gettempdir(),id_file)
+                os_id_file_path=os.path.join(tempfile.gettempdir(),id_file)
             
             
-            if isLinux():
-                #shift wine temp path to os temp path
-                wine_temp_unix_bak = "/home/"+username+"/.wine/drive_c/users/"+username+"/TempBak"
+                if isLinux():
+                    #shift wine temp path to os temp path
+                    wine_temp_unix_bak = "/home/"+username+"/.wine/drive_c/users/"+username+"/TempBak"
+                    try:
+                        status = call("rm -rf " + wine_temp_unix_bak, shell=True)
+                    except:
+                        pass
+                    status = call(r"mv " + wine_temp_unix + r" " + wine_temp_unix_bak, shell=True)
+                    status = call("ln -s /tmp "+wine_temp_unix, shell=True)
+                    
+                    #Write Linux wine compile command
+                    wine_id_file_path=r"C:/users/"+username+r"/Temp/"+id_file
+                    Linux_full_command=r"wine '"+cgpsmapper_file_path+"' '"+wine_id_file_path+"'"
+                    if verbose(): print Linux_full_command
+                else:
+                    win_full_command=cgpsmapper_file_path+" "+os_id_file_path
+                    if verbose(): print win_full_command
+                
+                shutil.copy(fname,os_id_file_path)
+            
+                
+                #Run cGPSmapper compile commands
+                if isLinux:
+                    status = call(Linux_full_command, shell=True)
+                    status = call("rm -rf " + wine_temp_unix, shell=True)
+                    status = call(r"mv " + wine_temp_unix_bak + r" " + wine_temp_unix, shell=True)
+                else:
+                    status = call(win_full_command, shell=True)
+                
+                #Copy compiled files to oiginal mp file path
                 try:
-                    status = call("rm -rf " + wine_temp_unix_bak, shell=True)
+                    shutil.copy(os.path.join(tempfile.gettempdir(),str(img_ID)+".img"),os.path.join(os.path.split(fname)[0],str(img_ID)+".img"))
+                    os.remove(os.path.join(tempfile.gettempdir(),str(img_ID)+".img"))
+                    pass
+                except:
+                    print "unable to complete compliation for "+ str(img_ID)+".img"
+                
+                try:
+                    shutil.copy(os.path.join(tempfile.gettempdir(),str(img_ID)+".img.idx"),os.path.join(os.path.split(fname)[0],str(img_ID)+".img.idx"))
+                    os.remove(os.path.join(tempfile.gettempdir(),str(img_ID)+".img.idx"))
+                    pass
+                except:
+                    print "No idx file generated"
+                
+                try:
+                    os.remove(os.path.join(tempfile.gettempdir(),str(img_ID)+".mp"))
+                    pass
                 except:
                     pass
-                status = call(r"mv " + wine_temp_unix + r" " + wine_temp_unix_bak, shell=True)
-                status = call("ln -s /tmp "+wine_temp_unix, shell=True)
-                
-                #Write Linux wine compile command
-                wine_id_file_path=r"C:/users/"+username+r"/Temp/"+id_file
-                Linux_full_command=r"wine '"+cgpsmapper_file_path+"' '"+wine_id_file_path+"'"
-                if verbose(): print Linux_full_command
             else:
-                win_full_command=cgpsmapper_file_path+" "+os_id_file_path
-                if verbose(): print win_full_command
-            
-            shutil.copy(fname,os_id_file_path)
-            
-            
-            #Run cGPSmapper compile commands
-            if isLinux:
-                status = call(Linux_full_command, shell=True)
-                status = call("rm -rf " + wine_temp_unix, shell=True)
-                status = call(r"mv " + wine_temp_unix_bak + r" " + wine_temp_unix, shell=True)
-            else:
-                status = call(win_full_command, shell=True)
-            
-            #Copy compiled files to oiginal mp file path
-            try:
-                shutil.copy(os.path.join(tempfile.gettempdir(),str(img_ID)+".img"),os.path.join(os.path.split(fname)[0],str(img_ID)+".img"))
-                os.remove(os.path.join(tempfile.gettempdir(),str(img_ID)+".img"))
-                pass
-            except:
-                print "unable to complete compliation for "+ str(img_ID)+".img"
-            
-            try:
-                shutil.copy(os.path.join(tempfile.gettempdir(),str(img_ID)+".img.idx"),os.path.join(os.path.split(fname)[0],str(img_ID)+".img.idx"))
-                os.remove(os.path.join(tempfile.gettempdir(),str(img_ID)+".img.idx"))
-                pass
-            except:
-                print "No idx file generated"
-            
-            try:
-                os.remove(os.path.join(tempfile.gettempdir(),str(img_ID)+".mp"))
-                pass
-            except:
-                pass
-                
+                print "WARNING: Could not find "+fname
     # run
     def Polish(self):
         QMessageBox.information(self.iface.mainWindow(), QCoreApplication.translate('Polish', "Polish"), QCoreApplication.translate('Polish', "Polish"))
