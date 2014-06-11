@@ -559,6 +559,9 @@ class Polish:
     def testfun(self):
         print "local file function test"
         
+    def list_polish_attributes(self,QGisType):
+        return attribute_odict(QGisType)
+        
     def export_layers_as_polish(self,layers_list,output_file,import_dict={}):
         export_polish(self,layers_list,output_file,import_dict)
                         
