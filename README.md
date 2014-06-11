@@ -19,9 +19,9 @@ Export to Polish format
 -----------------------
 Import from Polish format
 -------------------------
-Compile polsh file to img
+Compile Polish file to img
 -------------------------
-Compile list of polish files to mapset
+Compile list of Polish files to mapset
 --------------------------------------
 
 
