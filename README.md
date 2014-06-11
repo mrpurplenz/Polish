@@ -83,6 +83,7 @@ MP_TYPE containing a string of the polish type code to use in the output file
 I have added a list_polish_attributes function so you can see what attributes will be parsed by the plugin. However at this stage only those attributes given above will be parsed and output to polish format.
 
 You can see the attributes that I will eventually export to with
+
 	import os
 	from qgis import utils
 	import qgis
