@@ -12,6 +12,7 @@ from qgis.analysis import *
 from pyspatialite import dbapi2 as db
 from qgis import core
 from qgis import *
+from qgis import utils
 from qgis.utils import *
 import re
 import random
@@ -22,6 +23,8 @@ import platform
 import getpass
 from os.path import basename
 from subprocess import call
+import collections
+
 
 def verbose():
     return True
@@ -170,7 +173,195 @@ def default_pv_header():
     preview_default_dictionary_dictionary['Level1RGN80']='111111111111111111111100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000'
     preview_default_dictionary['preview_default_dictionary_dictionary']= preview_default_dictionary_dictionary
     return preview_default_dictionary
+
+def attribute_odict(QGisType):
+    if QGisType==QGis.Point:
+        default_attributes_odict = collections.OrderedDict()
+        default_attributes_odict['id'] =[None,QVariant.Int,'id']
+        default_attributes_odict['Img_id'] = [None,QVariant.Int,'MP_MAP_ID']
+        default_attributes_odict['Feature_id'] =[None,QVariant.Int,'MP_FEAT_ID']
+        default_attributes_odict['Type'] = [None,QVariant.String,'MP_TYPE']
+        default_attributes_odict['Marine'] = ['N',QVariant.String,'MP_MARINE']
+        default_attributes_odict['City'] = ['N',QVariant.String,'MP_CITY']
+        default_attributes_odict['Label'] = [None,QVariant.String,'MP_LBL']
+        default_attributes_odict['EndLevel'] = [24,QVariant.Int,'MP_BIT_LVL']
+        default_attributes_odict['DataLevel'] = [None,QVariant.Int,'MP_DTA_LVL']
+        default_attributes_odict['StreetDesc'] = [None,QVariant.String,'MP_SDC']
+        default_attributes_odict['HouseNumber'] = [None,QVariant.Int,'MP_HSNO']
+        default_attributes_odict['OvernightParking'] = ['N',QVariant.String,'MP_ONPRK']
+        default_attributes_odict['Highway'] = [None,QVariant.String,'MP_HWY']
+        default_attributes_odict['CityName'] = [None,QVariant.String,'MP_CTYNM']
+        default_attributes_odict['RegionName'] = [None,QVariant.String,'MP_RGNNM']
+        default_attributes_odict['CountryName'] = [None,QVariant.String,'MP_CNTNM']
+        default_attributes_odict['Zip'] = [None,QVariant.String,'MP_ZIP']
+        default_attributes_odict['Exit'] = [None,QVariant.String,'MP_EXIT']
+        
+    if QGisType==QGis.Polygon:
+        default_attributes_odict = collections.OrderedDict()
+        default_attributes_odict['id'] =[None,QVariant.Int,'id']
+        default_attributes_odict['Img_id'] = [None,QVariant.Int,'MP_MAP_ID']
+        default_attributes_odict['Feature_id'] =[None,QVariant.Int,'MP_FEAT_ID']
+        default_attributes_odict['Type'] = [None,QVariant.String,'MP_TYPE']
+        default_attributes_odict['Marine'] = ['N',QVariant.String,'MP_MARINE']
+        default_attributes_odict['Label'] = [None,QVariant.String,'MP_LBL']
+        default_attributes_odict['EndLevel'] = [24,QVariant.Int,'MP_BIT_LVL']
+        default_attributes_odict['Background'] = ['N',QVariant.String,'MP_MARINE']
+        default_attributes_odict['DataLevel'] = [None,QVariant.Int,'MP_DTA_LVL']
+
+    if QGisType==QGis.Line:
+        default_attributes_odict = collections.OrderedDict()
+        default_attributes_odict['id'] =[None,QVariant.Int,'id']
+        default_attributes_odict['Img_id'] = [None,QVariant.Int,'MP_MAP_ID']
+        default_attributes_odict['Feature_id'] =[None,QVariant.Int,'MP_FEAT_ID']
+        default_attributes_odict['Type'] = [None,QVariant.String,'MP_TYPE']
+        default_attributes_odict['Marine'] = ['N',QVariant.String,'MP_MARINE']
+        
+        default_attributes_odict['Label'] = [None,QVariant.String,'MP_LBL']
+        default_attributes_odict['Label2'] = [None,QVariant.String,'MP_LBL2']
+        default_attributes_odict['EndLevel'] = [24,QVariant.Int,'MP_BIT_LVL']
+        default_attributes_odict['DataLevel'] = [None,QVariant.Int,'MP_DTA_LVL']
+        default_attributes_odict['StreetDesc'] = [None,QVariant.String,'MP_ST_DSC']
+        default_attributes_odict['DirIndicator'] = [0,QVariant.Int,'MP_DIR_IND']
+        default_attributes_odict['CityName'] = [None,QVariant.String,'MP_CTYNM']
+        default_attributes_odict['RegionName'] = [None,QVariant.String,'MP_RGNNM']
+        default_attributes_odict['CountryName'] = [None,QVariant.String,'MP_CNTNM']
+        default_attributes_odict['Zip'] = [None,QVariant.String,'MP_ZIP']
+        
+        #Routing specific
+        default_attributes_odict['RoadID'] = [None,QVariant.Int,'MP_ROAD_ID']
+        for n in range(1, 60):
+            default_attributes_odict['Numbers'+str(n)]= [None,QVariant.String,'MP_NUM'+str(n)]
+        default_attributes_odict['Routeparam'] = ['3,4,0,0,0,0,0,0,0,0,0,0',QVariant.String,'MP_ROUTE']
+        default_attributes_odict['NodIDs']=['',QVariant.String,'MP_NODES']#eg '1,0,1002,0|2,1,1003,0'
+    return default_attributes_odict
     
+    
+def build_create_layer_string(QGisType):
+    if QGisType==QGis.Polygon:
+        type_string="Polygon"
+    if QGisType==QGis.Point:
+        type_string="Point"
+    if QGisType==QGis.Line:
+        type_string="MultiLineString"
+    layer_string=type_string+"?crs=epsg:4326"
+    default_attributes_odict=attribute_odict(QGisType)
+    for mp_attribute_name in default_attributes_odict:
+        attribute_vals=default_attributes_odict[mp_attribute_name]
+        type_string=''
+        if attribute_vals[1]==QVariant.Int:
+            type_string="integer"
+        if attribute_vals[1]==QVariant.String:
+            type_string="string"
+        layer_attribute_name=str(attribute_vals[2])    
+        layer_string=layer_string+"&field="+layer_attribute_name+":"+str(type_string)
+    layer_string=layer_string+"&index=yes"
+    return layer_string
+
+def parse_object_type(ADD_layer,Polish_header_dict,QGisType,Feature_data_list):
+    #This code is reusable fo all feature types
+    Feature_id=0
+    default_layer_attributes_odict=attribute_odict(QGisType)
+    for Feature_data in Feature_data_list:
+        ADD_layer_provider= ADD_layer.dataProvider()
+        Feature_attributes_dict=dict(default_layer_attributes_odict)
+        Feature_id=Feature_id+1
+        Feature_attributes_dict['Feature_id'] =[Feature_id,Feature_attributes_dict['Feature_id'][1],Feature_attributes_dict['Feature_id'][2]]
+        Feature_attributes_dict['Img_id'] =[Polish_header_dict['ID'],Feature_attributes_dict['Feature_id'][1],Feature_attributes_dict['Feature_id'][2]]
+        Data_objects=[]
+        Data_objects_level_list=[]
+        for read_line in Feature_data.split('\n'):
+            
+            if not read_line[:1]==";":
+                data_pair=read_line.split('=')
+                #DEBUG LINE
+                if data_pair[0]=='Type':
+                    pass
+                    #print data_pair[1]
+                try:
+                    if Feature_attributes_dict[data_pair[0]] is not None:
+                        Feature_attributes_dict[data_pair[0]]=[data_pair[1],Feature_attributes_dict[data_pair[0]][1],Feature_attributes_dict[data_pair[0]][2]]
+                    else:
+                        pass
+                except:    
+                    if read_line[:4]=='Data':
+                        
+                        #Add objects to feature
+                        #Add data level
+                        Data_level=data_pair[0][5:]
+                        Data_objects_level_list.append(Data_level)
+                        #Add points to list of points
+                        Data_object_point_list=[]
+                        DATA_RES_STRING='-*\d+\.*\d*,-*\d+\.*\d*'
+                        DATA_REGEX_HAYSTACK=data_pair[1]
+                        DATA_REGEX_STRING=re.compile(DATA_RES_STRING)
+                        DATA_REGEX_MATCH = DATA_REGEX_STRING.findall(DATA_REGEX_HAYSTACK)
+                        Data_object_points=[]
+                        for latlonpair in DATA_REGEX_MATCH:
+                            latlon=latlonpair.split(',')
+                            Data_Point=QgsPoint(float(latlon[1]),float(latlon[0]))
+                            Data_object_points.append(Data_Point)
+                        Data_objects.append(Data_object_points)
+                    if read_line[:3]=='Nod':
+                        NodeNo=int(data_pair[0][3:])
+                        NewNodeString=str(NodeNo)+','+data_pair[1]
+                        OldNodeString=Feature_attributes_dict['NodIDs'][0]
+                        if len(OldNodeString)>1:
+                            separator='|'
+                        else:
+                            separator=''
+                        Feature_attributes_dict['NodIDs']=[OldNodeString+separator+NewNodeString,Feature_attributes_dict['NodIDs'][1],Feature_attributes_dict['NodIDs'][2]]
+
+        #Add feature to layer
+        #At this point we have all the attributes of the feature and a list of objects in htat feature each object being a list of latlon points
+        
+        if QGisType==QGis.Polygon:
+                feat = QgsFeature()
+                feat.setGeometry(QgsGeometry.fromPolygon(Data_objects))
+                ring_objects=[]
+                #for index, Data_object in enumerate(Data_objects):
+                #    ring_object=[]
+                #    for data_point in Data_object:
+                attributes_list=[]
+                for index, attribute_name in enumerate(default_layer_attributes_odict):
+                    attributes_list.append(Feature_attributes_dict[attribute_name][0])
+                feat.setAttributes(attributes_list)
+                (res, outFeats) = ADD_layer.dataProvider().addFeatures( [ feat ] )
+  
+                    
+        if QGisType==QGis.Point:       
+            for index, Data_object in enumerate(Data_objects):
+                Feature_attributes_dict['DataLevel'][0]=Data_objects_level_list[index]
+                for Data_Point in Data_object:
+                    feat = QgsFeature()
+                    feat.setGeometry(QgsGeometry.fromPoint(Data_Point))
+                    attributes_list=[]
+                    for index, attribute_name in enumerate(default_layer_attributes_odict):
+                        attributes_list.append(Feature_attributes_dict[attribute_name][0])
+                    feat.setAttributes(attributes_list)
+                    (res, outFeats) = ADD_layer.dataProvider().addFeatures( [ feat ] )
+                    
+            
+        if QGisType==QGis.Line:
+                feat = QgsFeature()           
+                feat.setGeometry(QgsGeometry.fromMultiPolyline(Data_objects))
+                line_objects=[]
+                #for index, Data_object in enumerate(Data_objects):
+                #    ring_object=[]
+                #    for data_point in Data_object:
+                attributes_list=[]
+                for index, attribute_name in enumerate(default_layer_attributes_odict):
+                    attributes_list.append(Feature_attributes_dict[attribute_name][0])
+                feat.setAttributes(attributes_list)
+                (res, outFeats) = ADD_layer.dataProvider().addFeatures( [ feat ] )
+    #ADD_layer.updateExtents()
+    #QgsMapLayerRegistry.instance().addMapLayer(ADD_layer)
+    #qgis.utils.iface.setActiveLayer(ADD_layer)
+    #qgis.utils.iface.zoomToActiveLayer()
+    
+    return True
+
+
+
 def export_polish(self,layers_list,output_file,import_dict):
 
     #Build DEFAULT polish header dictionary
@@ -385,9 +576,104 @@ class Polish:
                 if verbose(): print "Could not find "+file
         export_polish(self,layers_list,output_file,import_dict)
         
-    def import_polish_files_to_spatialite(self,files_list):
-        pass
+    def import_polish_files(self,Polish_file_list):
+        
+        #Create POL layer
+        layer_string=build_create_layer_string(QGis.Point)
+        POI_layer= QgsVectorLayer(layer_string, "POI_layer", "memory")
+        POI_provider = POI_layer.dataProvider()
+        QgsMapLayerRegistry.instance().addMapLayer(POI_layer)
 
+        #Create Polygon layer
+        layer_string=build_create_layer_string(QGis.Polygon)
+        Polygon_layer= QgsVectorLayer(layer_string, "Polygon_layer", "memory")
+        Polygon_provider = Polygon_layer.dataProvider()
+        QgsMapLayerRegistry.instance().addMapLayer(Polygon_layer)
+
+        #Create Polyline layer
+        layer_string=build_create_layer_string(QGis.Line)
+        Line_layer= QgsVectorLayer(layer_string, "Line_layer", "memory")
+        Line_provider = Line_layer.dataProvider()
+        QgsMapLayerRegistry.instance().addMapLayer(Line_layer)
+        
+        layer_handles=[]
+        layer_handles.append(POI_layer)
+        layer_handles.append(Polygon_layer)
+        layer_handles.append(Line_layer)
+        
+        for Polish_file in Polish_file_list:
+            if os.path.exists(Polish_file):
+                with open(Polish_file,'r') as f:
+                    read_data = f.read()
+                    
+                #Generate new spatialite table
+                #try:
+                #    os.remove(tempfile.gettempdir(),'newfile.sqlite')
+                #except:
+                #    pass
+                #spatialitedb=os.path.join(tempfile.gettempdir(),'newfile.sqlite')
+                #conn = db.connect(spatialitedb)
+                #cur = conn.cursor()
+                #cur.execute('DROP TABLE IF EXISTS header_info')
+                #cur.execute('CREATE TABLE header_info (id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, img_ID INTEGER, Key TEXT, key_val TEXT)')
+                #cur.execute('DROP TABLE IF EXISTS POI')
+                #cur.execute('CREATE TABLE POI (id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, img_ID INTEGER, MP_TYPE TEXT NOT NULL, Marine TEXT DEFAULT "N", City TEXT DEFAULT "N", Label TEXT, EndLevel INTEGER DEFAULT 0, DataNo INTEGER DEFAULT 0, StreetDesc TEXT, HouseNumber INTEGER, OvernightParking TEXT DEFAULT "N", Highway TEXT, CityName TEXT, RegionName TEXT, CountryName TEXT, Zip TEXT, Exit TEXT)')
+                #cur.execute("SELECT AddGeometryColumn('POI', 'location',  4326, 'POINT', 'XY')")
+                #Get header data
+                headregex = re.compile('\[IMG ID\].+?\[END-IMG ID\]', re.MULTILINE|re.DOTALL)
+                result = headregex.search(read_data)
+                Polish_header_data=result.group()
+                #print Polish_header_data
+                Polish_header_dict={}
+                #polish_object_instance = utils.plugins['Polish']
+                #default_header=polish_object_instance.get_default_mp_header()
+                default_header=default_mp_header()
+                for header_key in default_header:
+                    regex_needle=header_key+'\s*=.*'
+                    #print 'looking for '+header_key
+                    regex_comp = re.compile(regex_needle)
+                    regex_match = regex_comp.search(Polish_header_data)
+                    try:
+                        regex_line = regex_match.group(0)
+                        #print 'found '+regex_line
+                        Polish_header_dict[header_key]=(regex_line.split("="))[1]
+                    except:
+                        print "Did not find "+str(header_key)+" using default value '"+str(default_header[header_key])+"'"
+                        Polish_header_dict[header_key]=default_header[header_key]
+                        
+                for header_key in Polish_header_dict:
+                    #print str(header_key)+' = '+str(Polish_header_dict[header_key] )
+                    #cur.execute("INSERT INTO header_info VALUES (NULL,"+Polish_header_dict['ID']+",'"+str(header_key)+"','"+str(Polish_header_dict[header_key] )+"'"+")")
+                    pass
+                #Read POIs from current file
+                POIregex = re.compile('\[POI\].+?\[END\]', re.MULTILINE|re.DOTALL)
+                Feature_data_list = POIregex.findall(read_data)
+                for dataset in Feature_data_list:
+                    pass
+                    #print dataset
+                parse_object_type(POI_layer,Polish_header_dict ,QGis.Point,Feature_data_list)
+                
+                #Read Polygons from current file
+                Polygonregex = re.compile('\[POLYGON\].+?\[END\]', re.MULTILINE|re.DOTALL)
+                Feature_data_list = Polygonregex.findall(read_data)
+                for dataset in Feature_data_list:
+                    pass
+                    #print dataset
+                parse_object_type(Polygon_layer, Polish_header_dict, QGis.Polygon,Feature_data_list)
+                
+                #Read Lines from current file
+                Lineregex = re.compile('\[POLYLINE\].+?\[END\]', re.MULTILINE|re.DOTALL)
+                Feature_data_list = Lineregex.findall(read_data)
+                for dataset in Feature_data_list:
+                    pass
+                    #print dataset
+                parse_object_type(Line_layer, Polish_header_dict, QGis.Line,Feature_data_list)
+                
+        QgsMapLayerRegistry.instance().addMapLayer(Polygon_layer)
+        QgsMapLayerRegistry.instance().addMapLayer(POI_layer)
+        QgsMapLayerRegistry.instance().addMapLayer(Line_layer)
+        self.iface.mapCanvas().refresh()
+        return layer_handles
 
     def compile_preview_by_cgpsmapper(self,img_files_list,import_pv_dict):
         cgpsmapper_path=get_cGPSmapper_path()
