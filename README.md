@@ -12,17 +12,17 @@ A long term goal is to also handle the pv file format for managing sets of map t
 
 A further long term goal is to incorporate the use of cross platform map and mapset compilers such as gmaptool and mkgmap or maptk
 
-Function objectives
-===================
+Function objectives:
+====================
 
 Export to Polish format
-=======================
-Import fromt Polish format
-==========================
+-----------------------
+Import from Polish format
+-------------------------
 Compile polsh file to img
-=========================
+-------------------------
 Compile list of polish files to mapset
-======================================
+--------------------------------------
 
 
 Installation
