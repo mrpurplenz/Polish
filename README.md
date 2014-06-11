@@ -69,17 +69,16 @@ Export to Polish format
 -------------------------
 To use this function from the console:
 
-from qgis import utils
+  from qgis import utils
 
-Polish_object_instance = utils.plugins['Polish']
+  Polish_object_instance = utils.plugins['Polish']
 
-shape_file_list=[]
+  shape_file_list=[]
 
-shape_file_list.append("path/to/shapefile1.shp")
+  shape_file_list.append("path/to/shapefile1.shp")
 
-shape_file_list.append("path/to/shapefile2.shp")
-
-Polish_object_instance.export_files_as_polish(shape_file_list,'output.mp')
+  shape_file_list.append("path/to/shapefile2.shp")
+  Polish_object_instance.export_files_as_polish(shape_file_list,'output.mp')
 
 In order to get attributes such as object name into the output file you need to create some specifically named fields for example
 
