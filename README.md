@@ -106,6 +106,8 @@ This function while available has yet to have instructions written for it.
 
 locally. The `dev/builder/build.sh` script can be used for that purpose:
 
-	> ./dev/builder/build.sh
+	from qgis import utils
+	Polish = utils.plugins['Polish']
+	Polish.functionname()
 
 A "release ready" working copy of your development code will be built in the new
