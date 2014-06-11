@@ -51,11 +51,17 @@ Import from Polish format
 The main import code is complete you can import a 'list' of polish format files into QGIS from the consol with the command
 
 from qgis import utils
+
 Polish = utils.plugins['Polish']
+
 polish_file_list=[]
+
 polish_file_list.append('path/to/polish/format/file1.mp')
+
 polish_file_list.append('path/to/polish/format/file2.mp')
+
 list_of_layer_handles=Polish.import_polish_files(polish_file_list)
+
 
 I've still to write the code to pull the routing information from the attributes into a working routing graph
 
@@ -64,10 +70,15 @@ Export to Polish format
 To use this function from the console:
 
 from qgis import utils
+
 Polish_object_instance = utils.plugins['Polish']
+
 shape_file_list=[]
+
 shape_file_list.append("path/to/shapefile1.shp")
+
 shape_file_list.append("path/to/shapefile2.shp")
+
 Polish_object_instance.export_files_as_polish(shape_file_list,'output.mp')
 
 In order to get attributes such as object name into the output file you need to create some specifically named fields for example
