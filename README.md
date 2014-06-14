@@ -80,7 +80,26 @@ MP_DTA_LVL contains an integer representing the bit level at which the feature s
 
 MP_TYPE containing a string of the polish type code to use in the output file
 
-At some point I will add a print_available_attrs function so you can see what attributes will be parsed by the plugin. At this stage only those attributes given above will be parsed and output to polish format.
+I have added a list_polish_attributes function so you can see what attributes will be parsed by the plugin. However at this stage only those attributes given above will be parsed and output to polish format.
+
+You can see the attributes that I will eventually export to with
+
+	import os
+	from qgis import utils
+	import qgis
+	Polish_object_instance = utils.plugins['Polish']
+	types={}
+	types['POI']=QGis.Point
+	types['POLYGON']=QGis.Polygon
+	types['POLYLINE']=QGis.Line
+	for type in types:
+	    
+	    ordered_list_of_attributes==Polish_object_instance.list_polish_attributes(types[type])
+	    print "Attributes for "+str(type)+" are:"
+	    for attrib_name in ordered_list_of_attributes:
+	        print attrib_name+" is "+ordered_list_of_attributes[attrib_name][2]
+	    print "\n"
+
 
 Compile to img file
 -------------------
