@@ -236,14 +236,14 @@ def attribute_odict(QGisType):
     return default_attributes_odict
     
     
-def build_create_layer_string(QGisType):
+def build_create_layer_string(QGisType,epsg_code):
     if QGisType==QGis.Polygon:
         type_string="Polygon"
     if QGisType==QGis.Point:
         type_string="Point"
     if QGisType==QGis.Line:
         type_string="MultiLineString"
-    layer_string=type_string+"?crs=epsg:4326"
+    layer_string=type_string+"?crs=epsg:"+str(epsg_code)
     default_attributes_odict=attribute_odict(QGisType)
     for mp_attribute_name in default_attributes_odict:
         attribute_vals=default_attributes_odict[mp_attribute_name]
@@ -562,6 +562,9 @@ class Polish:
     def list_polish_attributes(self,QGisType):
         return attribute_odict(QGisType)
         
+    def build_memory_layer_string(self,QGisType,epsg_code):
+        return build_create_layer_string(QGisType,epsg_code)
+        
     def export_layers_as_polish(self,layers_list,output_file,import_dict={}):
         export_polish(self,layers_list,output_file,import_dict)
                         
@@ -580,21 +583,22 @@ class Polish:
         export_polish(self,layers_list,output_file,import_dict)
         
     def import_polish_files(self,Polish_file_list):
+        epsg_code=4326
         
         #Create POL layer
-        layer_string=build_create_layer_string(QGis.Point)
+        layer_string=build_create_layer_string(QGis.Point,epsg_code)
         POI_layer= QgsVectorLayer(layer_string, "POI_layer", "memory")
         POI_provider = POI_layer.dataProvider()
         QgsMapLayerRegistry.instance().addMapLayer(POI_layer)
 
         #Create Polygon layer
-        layer_string=build_create_layer_string(QGis.Polygon)
+        layer_string=build_create_layer_string(QGis.Polygon,epsg_code)
         Polygon_layer= QgsVectorLayer(layer_string, "Polygon_layer", "memory")
         Polygon_provider = Polygon_layer.dataProvider()
         QgsMapLayerRegistry.instance().addMapLayer(Polygon_layer)
 
         #Create Polyline layer
-        layer_string=build_create_layer_string(QGis.Line)
+        layer_string=build_create_layer_string(QGis.Line,epsg_code)
         Line_layer= QgsVectorLayer(layer_string, "Line_layer", "memory")
         Line_provider = Line_layer.dataProvider()
         QgsMapLayerRegistry.instance().addMapLayer(Line_layer)
