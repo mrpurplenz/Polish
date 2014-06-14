@@ -94,7 +94,7 @@ You can see the attributes that I will eventually export to with
 	types['POLYLINE']=QGis.Line
 	for type in types:
 	    
-	    ordered_list_of_attributes==Polish_object_instance.list_polish_attributes(types[type])
+	    ordered_list_of_attributes=Polish_object_instance.list_polish_attributes(types[type])
 	    print "Attributes for "+str(type)+" are:"
 	    for attrib_name in ordered_list_of_attributes:
 	        print attrib_name+" is "+ordered_list_of_attributes[attrib_name][2]
