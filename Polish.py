@@ -25,7 +25,55 @@ from os.path import basename
 from subprocess import call
 import collections
 
+def WKBType_to_type(QGisWKBType):
+    if QGisWKBType==0:#WKBUnknown
+        return QGis.UnknownGeometry
+    if QGisWKBType==1:#WKBPoint
+        return QGis.Point
+    if QGisWKBType==2:#WKBLineString 
+        return QGis.Line
+    if QGisWKBType==3:#WKBPolygon
+        return QGis.Polygon
+    if QGisWKBType==4:#WKBMultiPoint 
+        return QGis.Point
+    if QGisWKBType==5:#WKBMultiLineString 
+        return QGis.Line
+    if QGisWKBType==6:#WKBMultiPolygon 
+        return QGis.Polygon
+    if QGisWKBType==7:#WKBMultiPolygon 
+        return QGis.NoGeometry
+        
+def QGisWktType_to_text(QGisWKBType):
+    if QGisWKBType==0:#WKBUnknown
+        return "Unknown"
+    if QGisWKBType==1:#WKBPoint
+        return "Point"
+    if QGisWKBType==2:#WKBLineString 
+        return "LineString"
+    if QGisWKBType==3:#WKBPolygon
+        return "Polygon"
+    if QGisWKBType==4:#WKBMultiPoint 
+        return "MultiPoint"
+    if QGisWKBType==5:#WKBMultiLineString 
+        return "MultiLineString"
+    if QGisWKBType==6:#WKBMultiPolygon 
+        return "MultiPolygon"
+    if QGisWKBType==7:#WKBMultiPolygon 
+        return "NoGeometry"
+        
+def QGisType_to_text(QGisType):
+    if QGisType==0:
+        return "Point"
+    if QGisType==1:
+        return "Line"
+    if QGisType==2:
+        return "Polygon"
+    if QGisType==3:
+        return "UnknownGeometry"
+    if QGisType==4:
+        return "NoGeometry"
 
+        
 def verbose():
     return True
 
@@ -236,13 +284,9 @@ def attribute_odict(QGisType):
     return default_attributes_odict
     
     
-def build_create_layer_string(QGisType,epsg_code):
-    if QGisType==QGis.Polygon:
-        type_string="Polygon"
-    if QGisType==QGis.Point:
-        type_string="Point"
-    if QGisType==QGis.Line:
-        type_string="MultiLineString"
+def build_create_layer_string(QGisWKBType,epsg_code):
+    QGisType=WKBType_to_type(QGisWKBType)
+    type_string=QGisWktType_to_text(QGisWKBType)
     layer_string=type_string+"?crs=epsg:"+str(epsg_code)
     default_attributes_odict=attribute_odict(QGisType)
     for mp_attribute_name in default_attributes_odict:
@@ -562,8 +606,8 @@ class Polish:
     def list_polish_attributes(self,QGisType):
         return attribute_odict(QGisType)
         
-    def build_memory_layer_string(self,QGisType,epsg_code):
-        return build_create_layer_string(QGisType,epsg_code)
+    def build_memory_layer_string(self,QGisWKBType,epsg_code):
+        return build_create_layer_string(QGisWKBType,epsg_code)
         
     def export_layers_as_polish(self,layers_list,output_file,import_dict={}):
         export_polish(self,layers_list,output_file,import_dict)
@@ -586,19 +630,19 @@ class Polish:
         epsg_code=4326
         
         #Create POL layer
-        layer_string=build_create_layer_string(QGis.Point,epsg_code)
+        layer_string=build_create_layer_string(QGis.WKBPoint,epsg_code)
         POI_layer= QgsVectorLayer(layer_string, "POI_layer", "memory")
         POI_provider = POI_layer.dataProvider()
         QgsMapLayerRegistry.instance().addMapLayer(POI_layer)
 
         #Create Polygon layer
-        layer_string=build_create_layer_string(QGis.Polygon,epsg_code)
+        layer_string=build_create_layer_string(QGis.WKBPolygon,epsg_code)
         Polygon_layer= QgsVectorLayer(layer_string, "Polygon_layer", "memory")
         Polygon_provider = Polygon_layer.dataProvider()
         QgsMapLayerRegistry.instance().addMapLayer(Polygon_layer)
 
         #Create Polyline layer
-        layer_string=build_create_layer_string(QGis.Line,epsg_code)
+        layer_string=build_create_layer_string(QGis.WKBMultiLineString,epsg_code)
         Line_layer= QgsVectorLayer(layer_string, "Line_layer", "memory")
         Line_provider = Line_layer.dataProvider()
         QgsMapLayerRegistry.instance().addMapLayer(Line_layer)
