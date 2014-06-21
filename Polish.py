@@ -611,6 +611,9 @@ class Polish:
         
     def export_layers_as_polish(self,layers_list,output_file,import_dict={}):
         export_polish(self,layers_list,output_file,import_dict)
+        
+    def WKBtype_to_GeomType(self,QGisWKBType):
+        return WKBType_to_type(QGisWKBType)
                         
     def export_files_as_polish(self,files_list,output_file,import_dict={}):
         layers_list=[]
