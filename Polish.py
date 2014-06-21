@@ -26,6 +26,7 @@ from subprocess import call
 import collections
 
 def WKBType_to_type(QGisWKBType):
+ 
     if QGisWKBType==0:#WKBUnknown
         return QGis.UnknownGeometry
     if QGisWKBType==1:#WKBPoint
