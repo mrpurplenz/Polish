@@ -74,15 +74,15 @@ In order to get attributes such as object name into the output file you need to 
 
 MP_BIT_LVL containing an integer representing the bit level at which the feature should be displayed when zooming in from infinity
 
-MP_NAME containing NOT THE LABEL OF THE FEATURE but the name of the attribute which contains the lable you wish to display for that feature or MP_LABEL containing the name of the feature (not yet implimented)
+MP_LBL containing LABEL OF THE FEATURE  you wish to display for that feature NB this difffers from the older MP_NAME attribute referncing another attribute to contain the name. MP_NAME i sno longer implimented
 
 MP_DTA_LVL contains an integer representing the bit level at which the feature should cease to display when zooming in from infinity
 
 MP_TYPE containing a string of the polish type code to use in the output file
 
-I have added a list_polish_attributes function so you can see what attributes will be parsed by the plugin. However at this stage only those attributes given above will be parsed and output to polish format.
+I have added a list_polish_attributes function so you can see what attributes will be parsed by the plugin.
 
-You can see the attributes that I will eventually export to with
+You can see the attributes that are exported with
 
 	import os
 	from qgis import utils
