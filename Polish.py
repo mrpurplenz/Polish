@@ -25,6 +25,70 @@ from os.path import basename
 from subprocess import call
 import collections
 
+
+def attribute_odict(QGisType):
+    if QGisType==QGis.Point:
+        default_attributes_odict = collections.OrderedDict()
+        #Name in pdf = [default value,data type, attribute name for shp, required for polish bool]
+        default_attributes_odict['id'] =[None,QVariant.Int,'id',False]
+        default_attributes_odict['Img_id'] = [None,QVariant.Int,'MP_MAP_ID',False]
+        default_attributes_odict['Feature_id'] =[None,QVariant.Int,'MP_FEAT_ID',False]
+        default_attributes_odict['Type'] = ['0x00',QVariant.String,'MP_TYPE',True]
+        default_attributes_odict['Marine'] = ['N',QVariant.String,'MP_MARINE',False]
+        default_attributes_odict['City'] = ['N',QVariant.String,'MP_CITY',False]
+        default_attributes_odict['Label'] = [None,QVariant.String,'MP_LBL',False]
+        default_attributes_odict['EndLevel'] = [None,QVariant.Int,'MP_BIT_LVL',False]
+        default_attributes_odict['DataLevel'] = [0,QVariant.Int,'MP_DTA_LVL',True]
+        default_attributes_odict['StreetDesc'] = [None,QVariant.String,'MP_SDC',False]
+        default_attributes_odict['HouseNumber'] = [None,QVariant.Int,'MP_HSNO',False]
+        default_attributes_odict['OvernightParking'] = ['N',QVariant.String,'MP_ONPRK',False]
+        default_attributes_odict['Highway'] = [None,QVariant.String,'MP_HWY',False]
+        default_attributes_odict['CityName'] = [None,QVariant.String,'MP_CTYNM',False]
+        default_attributes_odict['RegionName'] = [None,QVariant.String,'MP_RGNNM',False]
+        default_attributes_odict['CountryName'] = [None,QVariant.String,'MP_CNTNM',False]
+        default_attributes_odict['Zip'] = [None,QVariant.String,'MP_ZIP',False]
+        default_attributes_odict['Exit'] = [None,QVariant.String,'MP_EXIT',False]
+        
+    if QGisType==QGis.Polygon:
+        default_attributes_odict = collections.OrderedDict()
+        default_attributes_odict['id'] =[None,QVariant.Int,'id',False]
+        default_attributes_odict['Img_id'] = [None,QVariant.Int,'MP_MAP_ID',False]
+        default_attributes_odict['Feature_id'] =[None,QVariant.Int,'MP_FEAT_ID',False]
+        default_attributes_odict['Type'] = ['0x00',QVariant.String,'MP_TYPE',True]
+        default_attributes_odict['Marine'] = ['N',QVariant.String,'MP_MARINE',False]
+        default_attributes_odict['Label'] = [None,QVariant.String,'MP_LBL',False]
+        default_attributes_odict['EndLevel'] = [None,QVariant.Int,'MP_BIT_LVL',False]
+        default_attributes_odict['Background'] = ['N',QVariant.String,'MP_MARINE',False]
+        default_attributes_odict['DataLevel'] = [0,QVariant.Int,'MP_DTA_LVL',True]
+
+    if QGisType==QGis.Line:
+        default_attributes_odict = collections.OrderedDict()
+        default_attributes_odict['id'] =[None,QVariant.Int,'id',False]
+        default_attributes_odict['Img_id'] = [None,QVariant.Int,'MP_MAP_ID',False]
+        default_attributes_odict['Feature_id'] =[None,QVariant.Int,'MP_FEAT_ID',False]
+        default_attributes_odict['Type'] = ['0x00',QVariant.String,'MP_TYPE',True]
+        default_attributes_odict['Marine'] = ['N',QVariant.String,'MP_MARINE',False]
+        
+        default_attributes_odict['Label'] = [None,QVariant.String,'MP_LBL',False]
+        default_attributes_odict['Label2'] = [None,QVariant.String,'MP_LBL2',False]
+        default_attributes_odict['EndLevel'] = [None,QVariant.Int,'MP_BIT_LVL',False]
+        default_attributes_odict['DataLevel'] = [0,QVariant.Int,'MP_DTA_LVL',True]
+        default_attributes_odict['StreetDesc'] = [None,QVariant.String,'MP_ST_DSC',False]
+        default_attributes_odict['DirIndicator'] = [0,QVariant.Int,'MP_DIR_IND',False]
+        default_attributes_odict['CityName'] = [None,QVariant.String,'MP_CTYNM',False]
+        default_attributes_odict['RegionName'] = [None,QVariant.String,'MP_RGNNM',False]
+        default_attributes_odict['CountryName'] = [None,QVariant.String,'MP_CNTNM',False]
+        default_attributes_odict['Zip'] = [None,QVariant.String,'MP_ZIP',False]
+        
+        #Routing specific
+        default_attributes_odict['RoadID'] = [None,QVariant.Int,'MP_ROAD_ID',False]
+        for n in range(1, 60):
+            default_attributes_odict['Numbers'+str(n)]= [None,QVariant.String,'MP_NUM'+str(n),False]
+        default_attributes_odict['Routeparam'] = ['3,4,0,0,0,0,0,0,0,0,0,0',QVariant.String,'MP_ROUTE',False]
+        default_attributes_odict['NodIDs']=['',QVariant.String,'MP_NODES',False]#eg '1,0,1002,0|2,1,1003,0'
+    return default_attributes_odict
+  
+
 def WKBType_to_type(QGisWKBType):
  
     if QGisWKBType==0:#WKBUnknown
@@ -101,8 +165,28 @@ def isLinux():
         return True
     else:
         return False
+        
+def bit_level(file_header_dict,bit_val):
+    #returns the level# associated with a given bit level value
+    BIT_LEVEL_DICT = {}
+    for key in file_header_dict:
+        if key.startswith("Level"):
+            if key!="Levels":
+                BIT_LEVEL_DICT[file_header_dict[key]]=str(key[5:])
+    rev_BIT_LEVEL_DICT = {v:k for k, v in BIT_LEVEL_DICT.items()}
+    return BIT_LEVEL_DICT[int(bit_val)]
     
-def geomWrite(polish_file,pntsgeom,xform,DATA_LVL,isline):
+def rev_bit_level(file_header_dict,level_val):
+    #returns the bit level associated with a given level#
+    BIT_LEVEL_DICT = {}
+    for key in file_header_dict:
+        if key.startswith("Level"):
+            if key!="Levels":
+                BIT_LEVEL_DICT[file_header_dict[key]]=str(key[5:])
+    rev_BIT_LEVEL_DICT = {v:k for k, v in BIT_LEVEL_DICT.items()}
+    return rev_BIT_LEVEL_DICT[level_val]
+    
+def geomWrite(polish_file,pntsgeom,xform,DATA_LVL):
     Datastring=''
     firstpoint=0
     pointcount=0
@@ -112,11 +196,11 @@ def geomWrite(polish_file,pntsgeom,xform,DATA_LVL,isline):
         if firstpoint==0:
             firstpoint=1
             ok_to_write_data=True
-            Datastring=Datastring+'Data'+DATA_LVL+'=('+Datastring
+            Datastring=Datastring+'Data'+str(DATA_LVL)+'=('+Datastring
         else:
             Datastring=Datastring+',('
         Datastring=Datastring+str(newQgsPoint.y())+','+str(newQgsPoint.x())+')'
-        if isline:
+        if False: #This code is intended to split lines into 255 length lines for MKmap
             pointcount=pointcount+1
             if False:
             #if pointcount==255:
@@ -128,18 +212,66 @@ def geomWrite(polish_file,pntsgeom,xform,DATA_LVL,isline):
     if ok_to_write_data:
         polish_file.write(u''+Datastring+'\n')
 
-def writepolishobject(polish_file,outputtype,MP_TYPE_val,MP_NAME_val,END_LVL_val,DATA_LVL,xform,datalinesgeom):
+#def writepolishobject(polish_file,outputtype,MP_TYPE_val,MP_NAME_val,END_LVL_val,DATA_LVL,xform,datalinesgeom):
+def writepolishobject(polish_file,outputtype,Feature_attributes_odict,file_header_dict,xform,datalinesgeom):
     
-    isline=False
-    if outputtype=='[POLYLINE]':
-    	isline=True
+    if outputtype == '[POI]':
+        QGisType=QGis.Point
+    if outputtype == '[POLYLINE]':
+        QGisType=QGis.Line
+    if outputtype == '[POLYGON]':
+        QGisType=QGis.Polygon
+
     polish_file.write(u''+outputtype+'\n')
-    polish_file.write(u'Type='+str(MP_TYPE_val)+'\n')                    
-    if MP_NAME_val!='':
-        polish_file.write(u'Label='+str(MP_NAME_val)+'\n')
-    polish_file.write(u'EndLevel='+str(END_LVL_val)+'\n')
+    #XXXXXXXXXXXXXXXXXXXXXXXNEED TO FIND A WAY TO GO ATTR BY ATTR 
+    #FROM ODICT WRITING WITH CORRECT FORMAT ALONG THE WAY AND ENFORCING CORRECT FORMAT AND REQIUORED ATTRS
+    for Feature_attribute in Feature_attributes_odict:
+        attr_name=str(Feature_attribute)
+        #print Feature_attributes_odict[attr_name]
+        attr_val=Feature_attributes_odict[attr_name]
+        if attr_name=="EndLevel": #Convert to level rather than bit thingy
+            if attr_val is not None:
+                attr_val=bit_level(file_header_dict,attr_val)
+                polish_file.write(attr_name+u'='+str(attr_val)+'\n')
+                attr_val=None
+
+        if attr_name=="DataLevel": #Convert to level rather than bit thingy
+            DATA_LVL=int(attr_val)
+            attr_val=None
+        if attr_name[:7]=='Numbers':
+            pass
+            #multi line output but it will go as default
+        if attr_name=='NodIDs':
+            pass
+            #split the string on | for multi line output then set attr_val to None
+            if attr_val is not None:
+                nod_string_list=attr_val.split("|")
+                for nod_string in nod_string_list:
+                    Nod_id_string="Nod"+str(nod_string.split(",")[0])
+                    Nod_val_string=",".join(nod_string.split(",")[-(len(nod_string.split(","))-1):])
+                    polish_file.write(Nod_id_string+u'='+Nod_val_string+'\n')
+                    attr_val=None
+                
+        if attr_name=='id':
+            attr_val=None
+        if attr_name=='Img_id':
+            attr_val=None
+        if attr_name=='Feature_id':
+            attr_val=None
+            
+        if attr_val==attribute_odict(QGisType)[attr_name][0]:
+            attr_val=None
+            
+        if attr_val is not None:
+            polish_file.write(str(Feature_attribute)+u'='+str(Feature_attributes_odict[attr_name])+'\n')
+    
+
+    #polish_file.write(u'Type='+str(MP_TYPE_val)+'\n')                    
+    #if MP_NAME_val!='':
+    #    polish_file.write(u'Label='+str(MP_NAME_val)+'\n')
+    #polish_file.write(u'EndLevel='+str(END_LVL_val)+'\n')
     for datalinegeom in datalinesgeom:
-        geomWrite(polish_file,datalinegeom,xform,DATA_LVL,isline)
+        geomWrite(polish_file,datalinegeom,xform,DATA_LVL)
     polish_file.write(u'[END]\n\n')
     
 def default_mp_header():
@@ -179,7 +311,7 @@ def default_mp_header():
     default_header['Zoom2']=2
     default_header['Zoom3']=3
     default_header['Zoom4']=4
-    
+
     default_header['Preview']='N'
     default_header['DrawPriority']=25
     default_header['Marine']='N'
@@ -223,67 +355,7 @@ def default_pv_header():
     preview_default_dictionary['preview_default_dictionary_dictionary']= preview_default_dictionary_dictionary
     return preview_default_dictionary
 
-def attribute_odict(QGisType):
-    if QGisType==QGis.Point:
-        default_attributes_odict = collections.OrderedDict()
-        default_attributes_odict['id'] =[None,QVariant.Int,'id']
-        default_attributes_odict['Img_id'] = [None,QVariant.Int,'MP_MAP_ID']
-        default_attributes_odict['Feature_id'] =[None,QVariant.Int,'MP_FEAT_ID']
-        default_attributes_odict['Type'] = [None,QVariant.String,'MP_TYPE']
-        default_attributes_odict['Marine'] = ['N',QVariant.String,'MP_MARINE']
-        default_attributes_odict['City'] = ['N',QVariant.String,'MP_CITY']
-        default_attributes_odict['Label'] = [None,QVariant.String,'MP_LBL']
-        default_attributes_odict['EndLevel'] = [24,QVariant.Int,'MP_BIT_LVL']
-        default_attributes_odict['DataLevel'] = [None,QVariant.Int,'MP_DTA_LVL']
-        default_attributes_odict['StreetDesc'] = [None,QVariant.String,'MP_SDC']
-        default_attributes_odict['HouseNumber'] = [None,QVariant.Int,'MP_HSNO']
-        default_attributes_odict['OvernightParking'] = ['N',QVariant.String,'MP_ONPRK']
-        default_attributes_odict['Highway'] = [None,QVariant.String,'MP_HWY']
-        default_attributes_odict['CityName'] = [None,QVariant.String,'MP_CTYNM']
-        default_attributes_odict['RegionName'] = [None,QVariant.String,'MP_RGNNM']
-        default_attributes_odict['CountryName'] = [None,QVariant.String,'MP_CNTNM']
-        default_attributes_odict['Zip'] = [None,QVariant.String,'MP_ZIP']
-        default_attributes_odict['Exit'] = [None,QVariant.String,'MP_EXIT']
-        
-    if QGisType==QGis.Polygon:
-        default_attributes_odict = collections.OrderedDict()
-        default_attributes_odict['id'] =[None,QVariant.Int,'id']
-        default_attributes_odict['Img_id'] = [None,QVariant.Int,'MP_MAP_ID']
-        default_attributes_odict['Feature_id'] =[None,QVariant.Int,'MP_FEAT_ID']
-        default_attributes_odict['Type'] = [None,QVariant.String,'MP_TYPE']
-        default_attributes_odict['Marine'] = ['N',QVariant.String,'MP_MARINE']
-        default_attributes_odict['Label'] = [None,QVariant.String,'MP_LBL']
-        default_attributes_odict['EndLevel'] = [24,QVariant.Int,'MP_BIT_LVL']
-        default_attributes_odict['Background'] = ['N',QVariant.String,'MP_MARINE']
-        default_attributes_odict['DataLevel'] = [None,QVariant.Int,'MP_DTA_LVL']
-
-    if QGisType==QGis.Line:
-        default_attributes_odict = collections.OrderedDict()
-        default_attributes_odict['id'] =[None,QVariant.Int,'id']
-        default_attributes_odict['Img_id'] = [None,QVariant.Int,'MP_MAP_ID']
-        default_attributes_odict['Feature_id'] =[None,QVariant.Int,'MP_FEAT_ID']
-        default_attributes_odict['Type'] = [None,QVariant.String,'MP_TYPE']
-        default_attributes_odict['Marine'] = ['N',QVariant.String,'MP_MARINE']
-        
-        default_attributes_odict['Label'] = [None,QVariant.String,'MP_LBL']
-        default_attributes_odict['Label2'] = [None,QVariant.String,'MP_LBL2']
-        default_attributes_odict['EndLevel'] = [24,QVariant.Int,'MP_BIT_LVL']
-        default_attributes_odict['DataLevel'] = [None,QVariant.Int,'MP_DTA_LVL']
-        default_attributes_odict['StreetDesc'] = [None,QVariant.String,'MP_ST_DSC']
-        default_attributes_odict['DirIndicator'] = [0,QVariant.Int,'MP_DIR_IND']
-        default_attributes_odict['CityName'] = [None,QVariant.String,'MP_CTYNM']
-        default_attributes_odict['RegionName'] = [None,QVariant.String,'MP_RGNNM']
-        default_attributes_odict['CountryName'] = [None,QVariant.String,'MP_CNTNM']
-        default_attributes_odict['Zip'] = [None,QVariant.String,'MP_ZIP']
-        
-        #Routing specific
-        default_attributes_odict['RoadID'] = [None,QVariant.Int,'MP_ROAD_ID']
-        for n in range(1, 60):
-            default_attributes_odict['Numbers'+str(n)]= [None,QVariant.String,'MP_NUM'+str(n)]
-        default_attributes_odict['Routeparam'] = ['3,4,0,0,0,0,0,0,0,0,0,0',QVariant.String,'MP_ROUTE']
-        default_attributes_odict['NodIDs']=['',QVariant.String,'MP_NODES']#eg '1,0,1002,0|2,1,1003,0'
-    return default_attributes_odict
-    
+  
     
 def build_create_layer_string(QGisWKBType,epsg_code):
     QGisType=WKBType_to_type(QGisWKBType)
@@ -414,7 +486,7 @@ def export_polish(self,layers_list,output_file,import_dict):
     default_header = default_mp_header()
     #Get template mp file
     template_file_name='template.mp'
-    if os.path.exists(template_file_name):        
+    if os.path.exists(template_file_name):
         with open(template_file_name,'r') as f:
             output = f.read()
         headregex = re.compile('\[IMG ID\].+?\[END-IMG ID\]',re.DOTALL)
@@ -437,19 +509,23 @@ def export_polish(self,layers_list,output_file,import_dict):
             print default_header[header_key] 
             
     #Add import_dict to header info
+    
     for header_key in default_header:
         try:
             default_header[header_key]=import_dict[header_key]
         except:
             pass
     
+    file_header_dict=default_header
+    
     #Prepare BIT_LEVEL dictionary
-    BIT_LEVEL_DICT = {}
-    for key in default_header:
-        if key.startswith("Level"):
-            if key!="Levels":
-                #print "Found",key,"=",default_header[key],"Data"+str(key[5:])
-                BIT_LEVEL_DICT[default_header[key]]=str(key[5:])
+    #BIT_LEVEL_DICT = {}
+    #for key in default_header:
+    #    if key.startswith("Level"):
+    #        if key!="Levels":
+    #            #print "Found",key,"=",default_header[key],"Data"+str(key[5:])
+    #            BIT_LEVEL_DICT[default_header[key]]=str(key[5:])
+    #            rev_BIT_LEVEL_DICT = {v:k for k, v in BIT_LEVEL_DICT.items()}
 
     with io.open(output_file, 'w',1,None,None,'\r\n') as polish_file:
         #Write header to file
@@ -467,7 +543,7 @@ def export_polish(self,layers_list,output_file,import_dict):
             crsSrc = layer_dp.crs()
             crsDest = QgsCoordinateReferenceSystem(4326)  # WGS84
             xform = QgsCoordinateTransform(crsSrc, crsDest)
-            iter = layer.getFeatures()
+            
             #get indices for mp attributes 
             #nb the weird mp_name attribute 
             #which returns the name of the 
@@ -481,103 +557,142 @@ def export_polish(self,layers_list,output_file,import_dict):
             MP_DTA_LVL_idx = layer.fieldNameIndex('MP_DTA_LVL')
             MP_NAME_idx = layer.fieldNameIndex('MP_NAME')
             
+            myWkbType=layer.dataProvider().geometryType()
+            QGisType=WKBType_to_type(myWkbType)
+            mp_attr_name_list=[]
+            mp_attr_idx_list=[]
+            default_attributes=attribute_odict(QGisType)
+            for default_attribute in default_attributes:
+                mp_attr_name_list.append(default_attributes[default_attribute][2])
+                mp_attr_idx_list.append(layer.fieldNameIndex(default_attributes[default_attribute][2]))
+                
+                
             #idx will be -1 if no field found and subsiquently filled with a default value
+            iter = layer.getFeatures()
             for feature in iter:
                 geom=feature.geometry()
                 kind_is_point=0
                 kind_is_area=0
                 kind_is_line=0
                 if geom.type() == QGis.Point:
-                    pass
+                    outputtype='[POI]'
                     #print "POI found"
                 if geom.type() == QGis.Line:
-                    pass
+                    outputtype='[POLYLINE]'
                     #print "LINE found"
                 if geom.type() == QGis.Polygon:
-                    pass
+                    outputtype='[POLYGON]'
                     #print "AREA found"
-                #get mp attribs or set to default
-                attrs = feature.attributes()
-                if MP_TYPE_idx >=0:
-                    MP_TYPE_val=(attrs[MP_TYPE_idx])
-                    #print MP_TYPE_val
-                else:
-                    MP_TYPE_val="0x00"
-                    
-                if MP_BIT_LVL_idx >=0:
-                    MP_BIT_LVL_val=(attrs[MP_BIT_LVL_idx])
-                else:
-                    MP_BIT_LVL_val=24
-                try:
-                    END_LVL_val=BIT_LEVEL_DICT[MP_BIT_LVL_val]
-                except:
-                    print "No value found for MP_BIT_LVL attribute id reported as "+str(MP_BIT_LVL_idx)+". MP_TYPE for this feature was reported to be "+str(MP_TYPE_val)
-                    print "attributes are:"
-                    i=0
-                    for attribute in attribute_list:
-                        print "id "+str(i)+" is "+str(attribute.name())+" and has a value of "+str(attrs[i])
-                        i=i+1
-                    END_LVL_val=1
-                    print "level set to "+str(END_LVL_val)
-                    
-                    
-                if MP_DTA_LVL_idx >=0:
-                    MP_DTA_LVL_val=(attrs[MP_DTA_LVL_idx])
-                else:
-                    MP_DTA_LVL_val=24
-                DATA_LVL=BIT_LEVEL_DICT[MP_DTA_LVL_val]
-
-                MP_NAME_field_name=''    
-                if MP_NAME_idx>=0:
-                    MP_NAME_field_name=(attrs[MP_NAME_idx])
-                    LOCAL_NAME_idx = layer.fieldNameIndex(str(MP_NAME_field_name))
-                    MP_NAME_val=''
-                    if LOCAL_NAME_idx>=0:
-                        MP_NAME_val=(attrs[LOCAL_NAME_idx])
+                QGisType=geom.type()
+                default_feature_attributes_odict=attribute_odict(QGisType)
+                feature_attributes_odict = collections.OrderedDict()
+                for default_feature_attribute in default_feature_attributes_odict:
+                    attribute_name=default_feature_attributes_odict[default_feature_attribute][2]
+                    layer_attribute_idx=layer.fieldNameIndex(attribute_name)
+                    if layer_attribute_idx>=0:
+                        if str(feature.attributes()[layer_attribute_idx])=='NULL':
+                            feature_attributes_odict[default_feature_attribute]=None
+                            #print "NULL found"
+                        else:
+                            #print "Not NULL found"
+                            #print str(feature.attributes()[layer_attribute_idx])
+                            if feature.attributes()[layer_attribute_idx]==default_feature_attributes_odict[default_feature_attribute][0]:
+                                pass
+                            feature_attributes_odict[default_feature_attribute] = feature.attributes()[layer_attribute_idx]
                     else:
-                        MP_NAME_val=''
-                else:
-                    MP_NAME_val=''
+                        
+                        if default_feature_attributes_odict[default_feature_attribute][3]:
+                            feature_attributes_odict[default_feature_attribute] = default_feature_attributes_odict[default_feature_attribute][0]
+                        else:
+                            feature_attributes_odict[default_feature_attribute] = None
+                #print feature_attributes_odict[default_feature_attribute]
+                #get mp attribs or set to default
+                #attrs = feature.attributes()
+                #if MP_TYPE_idx >=0:
+                #    MP_TYPE_val=(attrs[MP_TYPE_idx])
+                #    #print MP_TYPE_val
+                #else:
+                #    MP_TYPE_val="0x00"
+                    
+                #if MP_BIT_LVL_idx >=0:
+                #    MP_BIT_LVL_val=(attrs[MP_BIT_LVL_idx])
+                #else:
+                #    MP_BIT_LVL_val=24
+                #try:
+                #    END_LVL_val=BIT_LEVEL_DICT[MP_BIT_LVL_val]
+                #except:
+                #    print "No value found for MP_BIT_LVL attribute id reported as "+str(MP_BIT_LVL_idx)+". MP_TYPE for this feature was reported to be "+str(MP_TYPE_val)
+                #    print "attributes are:"
+                #    i=0
+                #    for attribute in attribute_list:
+                #        print "id "+str(i)+" is "+str(attribute.name())+" and has a value of "+str(attrs[i])
+                #        i=i+1
+                #    END_LVL_val=1
+                #    print "level set to "+str(END_LVL_val)
+                    
+                #MP_DTA_LVL_val=0
+                #try:
+                #    if MP_DTA_LVL_idx >=0:
+                #        MP_DTA_LVL_val=(attrs[MP_DTA_LVL_idx])
+                #    else:
+                #        MP_DTA_LVL_val=0
+                #except:
+                #    pass
+                #DATA_LVL=BIT_LEVEL_DICT[MP_DTA_LVL_val]
+                #DATA_LVL=MP_DTA_LVL_val
+    
+                #MP_NAME_field_name=''
+                #if MP_NAME_idx>=0:
+                #    MP_NAME_field_name=(attrs[MP_NAME_idx])
+                #    LOCAL_NAME_idx = layer.fieldNameIndex(str(MP_NAME_field_name))
+                #    MP_NAME_val=''
+                #    if LOCAL_NAME_idx>=0:
+                #        MP_NAME_val=(attrs[LOCAL_NAME_idx])
+                #    else:
+                #        MP_NAME_val=''
+                #else:
+                #    MP_NAME_val=''
 
-                try:
-                    if MP_NAME_val.isNull():
-                        MP_NAME_val=''
-                except:
-                    pass
+                #try:
+                #    if MP_NAME_val.isNull():
+                #        MP_NAME_val=''
+                #except:
+                #    pass
+                
                 #print "MP_TYPE is "+str(MP_TYPE_val)
                 #print "MP_BIT_LVL is "+str(MP_BIT_LVL_val) 
                 #print "NAME is "+str(NAME_val)
                 geometry_wkbtype=geom.wkbType()
                 if geometry_wkbtype == QGis.WKBPoint:
-                    outputtype='[POI]'
+                    #outputtype='[POI]'
                     datalinegeom=[]
                     datalinegeom.append(geom.asPoint())
                     datalinesgeom=[]
                     datalinesgeom.append(datalinegeom)
-                    writepolishobject(polish_file,outputtype,MP_TYPE_val,MP_NAME_val,END_LVL_val,DATA_LVL,xform,datalinesgeom)
+                    writepolishobject(polish_file,outputtype,feature_attributes_odict,file_header_dict,xform,datalinesgeom)
                 if geometry_wkbtype == QGis.WKBMultiPoint:
-                    outputtype='[POI]'
+                    #outputtype='[POI]'
                     for geomprime in geom.asPoint():
                         datalinegeom=[]
                         datalinegeom.append(geomprime)
                         datalinesgeom=[]
                         datalinesgeom.append(datalinegeom)
-                        writepolishobject(polish_file,outputtype,MP_TYPE_val,MP_NAME_val,END_LVL_val,DATA_LVL,xform,datalinesgeom)
+                        writepolishobject(polish_file,outputtype,feature_attributes_odict,file_header_dict,xform,datalinesgeom)
                 if geometry_wkbtype == QGis.WKBLineString:
-                    outputtype='[POLYLINE]'
+                    #outputtype='[POLYLINE]'
                     datalinesgeom=[]
                     datalinesgeom.append(geom.asPolyline())
-                    writepolishobject(polish_file,outputtype,MP_TYPE_val,MP_NAME_val,END_LVL_val,DATA_LVL,xform,datalinesgeom)
+                    writepolishobject(polish_file,outputtype,feature_attributes_odict,file_header_dict,xform,datalinesgeom)
                 if geometry_wkbtype == QGis.WKBMultiLineString:
-                    outputtype='[POLYLINE]'
-                    writepolishobject(polish_file,outputtype,MP_TYPE_val,MP_NAME_val,END_LVL_val,DATA_LVL,xform,geom.asMultiPolyline())
+                    #outputtype='[POLYLINE]'
+                    writepolishobject(polish_file,outputtype,feature_attributes_odict,file_header_dict,xform,geom.asMultiPolyline())
                 if geometry_wkbtype == QGis.WKBPolygon:
-                    outputtype='[POLYGON]'
-                    writepolishobject(polish_file,outputtype,MP_TYPE_val,MP_NAME_val,END_LVL_val,DATA_LVL,xform,geom.asPolygon())
+                    #outputtype='[POLYGON]'
+                    writepolishobject(polish_file,outputtype,feature_attributes_odict,file_header_dict,xform,geom.asPolygon())
                 if geometry_wkbtype == QGis.WKBMultiPolygon:
-                    outputtype='[POLYGON]'
+                    #outputtype='[POLYGON]'
                     for datalinesgeom in geom.asMultiPolygon():
-                        writepolishobject(polish_file,outputtype,MP_TYPE_val,MP_NAME_val,END_LVL_val,DATA_LVL,xform,datalinesgeom)
+                        writepolishobject(polish_file,outputtype,feature_attributes_odict,file_header_dict,xform,datalinesgeom)
     print "wrote "+output_file
 
 class Polish:
@@ -622,8 +737,13 @@ class Polish:
             if os.path.exists(file):
                 layer=QgsVectorLayer(file,file, "ogr")
                 if layer.isValid():
-                    if verbose(): print "Exporting "+file
-                    layers_list.append(layer)
+                    iter = layer.getFeatures()
+                    feature_count=0
+                    for feature in iter:
+                        feature_count+=1
+                    if feature_count>0:
+                        if verbose(): print "Exporting "+file
+                        layers_list.append(layer)
                 else:
                     if verbose(): print file+" not valid"
             else:
