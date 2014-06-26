@@ -138,7 +138,6 @@ def QGisType_to_text(QGisType):
     if QGisType==4:
         return "NoGeometry"
 
-        
 def verbose():
     return True
 
