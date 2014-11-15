@@ -27,6 +27,7 @@ import collections
 
 
 def attribute_odict(QGisType):
+    default_attributes_odict=None
     if QGisType==QGis.Point:
         default_attributes_odict = collections.OrderedDict()
         #Name in pdf = [default value,data type, attribute name for shp, required for polish bool]
@@ -86,6 +87,8 @@ def attribute_odict(QGisType):
             default_attributes_odict['Numbers'+str(n)]= [None,QVariant.String,'MP_NUM'+str(n),False]
         default_attributes_odict['Routeparam'] = ['3,4,0,0,0,0,0,0,0,0,0,0',QVariant.String,'MP_ROUTE',False]
         default_attributes_odict['NodIDs']=['',QVariant.String,'MP_NODES',False]#eg '1,0,1002,0|2,1,1003,0'
+    if default_attributes_odict==None:
+        raise ValueError('Unknown QGisType')
     return default_attributes_odict
   
 
@@ -505,7 +508,8 @@ def export_polish(self,layers_list,output_file,import_dict):
             except:
                 pass
         for header_key in default_header:
-            print default_header[header_key] 
+            pass
+            #print default_header[header_key] 
             
     #Add import_dict to header info
     
@@ -525,7 +529,7 @@ def export_polish(self,layers_list,output_file,import_dict):
     #            #print "Found",key,"=",default_header[key],"Data"+str(key[5:])
     #            BIT_LEVEL_DICT[default_header[key]]=str(key[5:])
     #            rev_BIT_LEVEL_DICT = {v:k for k, v in BIT_LEVEL_DICT.items()}
-    polish_temp_file=os.path.join(tempfile.gettempdir(),polish_temp_file.mp)
+    polish_temp_file=os.path.join(tempfile.gettempdir(),"polish_temp_file.mp")
     
     with io.open(polish_temp_file, 'w',1,None,None,'\r\n') as polish_file:
         #Write header to file
@@ -744,7 +748,7 @@ class Polish:
                     #for feature in iter:
                     #    feature_count+=1
                     if feature_count>0:
-                        if verbose(): print "Exporting "+file+str(import_dict)
+                        if verbose(): print "Exporting "+file#+str(import_dict)
                         layers_list.append(layer)
                 else:
                     if verbose(): print file+" not valid"
@@ -752,7 +756,29 @@ class Polish:
                 if verbose(): print "Could not find "+file
             
         export_polish(self,layers_list,output_file,import_dict)
-        
+    
+    def get_polish_file_header(self,Polish_file):
+        if os.path.exists(Polish_file):
+            with open(Polish_file,'r') as f:
+                read_data = f.read()
+            headregex = re.compile('\[IMG ID\].+?\[END-IMG ID\]', re.MULTILINE|re.DOTALL)
+            result = headregex.search(read_data)
+            Polish_header_data=result.group()
+            #print Polish_header_data
+            Polish_header_dict={}
+            default_header=default_mp_header()
+            for header_key in default_header:
+                regex_needle=header_key+'\s*=.*'
+                regex_comp = re.compile(regex_needle)
+                regex_match = regex_comp.search(Polish_header_data)
+                try:
+                    regex_line = regex_match.group(0)
+                    Polish_header_dict[header_key]=(regex_line.split("="))[1]
+                except:
+                    print "Did not find "+str(header_key)+" using default value '"+str(default_header[header_key])+"'"
+                    Polish_header_dict[header_key]=default_header[header_key]
+        return Polish_header_dict
+                        
     def import_polish_files(self,Polish_file_list):
         epsg_code=4326
         
