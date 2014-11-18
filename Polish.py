@@ -87,8 +87,11 @@ def attribute_odict(QGisType):
             default_attributes_odict['Numbers'+str(n)]= [None,QVariant.String,'MP_NUM'+str(n),False]
         default_attributes_odict['Routeparam'] = ['3,4,0,0,0,0,0,0,0,0,0,0',QVariant.String,'MP_ROUTE',False]
         default_attributes_odict['NodIDs']=['',QVariant.String,'MP_NODES',False]#eg '1,0,1002,0|2,1,1003,0'
+    if QGisType==QGis.UnknownGeometry:
+        raise ValueError('Cannot build layer for UnknownGeometry',QGisType)
+    
     if default_attributes_odict==None:
-        raise ValueError('Unknown QGisType')
+        raise ValueError('Unknown QGisType',QGisType)
     return default_attributes_odict
   
 
@@ -360,9 +363,15 @@ def default_pv_header():
   
     
 def build_create_layer_string(QGisWKBType,epsg_code):
+    if QGisWKBType==QGis.WKBUnknown:
+        raise ValueError('Cannot build layer for WKBUnknown',QGisWKBType)
     QGisType=WKBType_to_type(QGisWKBType)
     type_string=QGisWktType_to_text(QGisWKBType)
     layer_string=type_string+"?crs=epsg:"+str(epsg_code)
+    try:
+        default_attributes_odict=attribute_odict(QGisType)
+    except ValueError as err:
+        print(err.args)
     default_attributes_odict=attribute_odict(QGisType)
     for mp_attribute_name in default_attributes_odict:
         attribute_vals=default_attributes_odict[mp_attribute_name]
