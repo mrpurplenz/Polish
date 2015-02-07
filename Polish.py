@@ -24,7 +24,11 @@ import getpass
 from os.path import basename
 from subprocess import call
 import collections
-
+import string
+import stat
+from subprocess import Popen
+from subprocess import PIPE
+from string import digits
 
 def attribute_odict(QGisType):
     default_attributes_odict=None
@@ -59,7 +63,7 @@ def attribute_odict(QGisType):
         default_attributes_odict['Marine'] = ['N',QVariant.String,'MP_MARINE',False]
         default_attributes_odict['Label'] = [None,QVariant.String,'MP_LBL',False]
         default_attributes_odict['EndLevel'] = [None,QVariant.Int,'MP_BIT_LVL',False]
-        default_attributes_odict['Background'] = ['N',QVariant.String,'MP_MARINE',False]
+        default_attributes_odict['Background'] = ['N',QVariant.String,'MP_BKGRND',False]
         default_attributes_odict['DataLevel'] = [0,QVariant.Int,'MP_DTA_LVL',True]
 
     if QGisType==QGis.Line:
@@ -86,7 +90,7 @@ def attribute_odict(QGisType):
         for n in range(1, 60):
             default_attributes_odict['Numbers'+str(n)]= [None,QVariant.String,'MP_NUM'+str(n),False]
         default_attributes_odict['Routeparam'] = ['3,4,0,0,0,0,0,0,0,0,0,0',QVariant.String,'MP_ROUTE',False]
-        default_attributes_odict['NodIDs']=['',QVariant.String,'MP_NODES',False]#eg '1,0,1002,0|2,1,1003,0'
+        default_attributes_odict['NodIDs']=[None,QVariant.String,'MP_NODES',False]#eg '1,0,1002,0|2,1,1003,0'
     if QGisType==QGis.UnknownGeometry:
         raise ValueError('Cannot build layer for UnknownGeometry',QGisType)
     
@@ -177,9 +181,15 @@ def bit_level(file_header_dict,bit_val):
     for key in file_header_dict:
         if key.startswith("Level"):
             if key!="Levels":
-                BIT_LEVEL_DICT[file_header_dict[key]]=str(key[5:])
+                BIT_LEVEL_DICT[int(file_header_dict[key])]=int(str(key[5:]))
     rev_BIT_LEVEL_DICT = {v:k for k, v in BIT_LEVEL_DICT.items()}
-    return BIT_LEVEL_DICT[int(bit_val)]
+    
+    try:
+        output=BIT_LEVEL_DICT[int(bit_val)]
+    except:
+        print BIT_LEVEL_DICT
+    return output
+    
     
 def rev_bit_level(file_header_dict,level_val):
     #returns the bit level associated with a given level#
@@ -219,6 +229,12 @@ def geomWrite(polish_file,pntsgeom,xform,DATA_LVL):
 
 #def writepolishobject(polish_file,outputtype,MP_TYPE_val,MP_NAME_val,END_LVL_val,DATA_LVL,xform,datalinesgeom):
 def writepolishobject(polish_file,outputtype,Feature_attributes_odict,file_header_dict,xform,datalinesgeom):
+    #print polish_file
+    #print outputtype
+    #print Feature_attributes_odict
+    #print file_header_dict
+    #print xform
+    #print datalinesgeom
     
     if outputtype == '[POI]':
         QGisType=QGis.Point
@@ -226,7 +242,7 @@ def writepolishobject(polish_file,outputtype,Feature_attributes_odict,file_heade
         QGisType=QGis.Line
     if outputtype == '[POLYGON]':
         QGisType=QGis.Polygon
-
+   
     polish_file.write(u''+outputtype+'\n')
     #XXXXXXXXXXXXXXXXXXXXXXXNEED TO FIND A WAY TO GO ATTR BY ATTR 
     #FROM ODICT WRITING WITH CORRECT FORMAT ALONG THE WAY AND ENFORCING CORRECT FORMAT AND REQIUORED ATTRS
@@ -277,6 +293,7 @@ def writepolishobject(polish_file,outputtype,Feature_attributes_odict,file_heade
     #polish_file.write(u'EndLevel='+str(END_LVL_val)+'\n')
     for datalinegeom in datalinesgeom:
         geomWrite(polish_file,datalinegeom,xform,DATA_LVL)
+        
     polish_file.write(u'[END]\n\n')
     
 def default_mp_header():
@@ -386,9 +403,10 @@ def build_create_layer_string(QGisWKBType,epsg_code):
     return layer_string
 
 def parse_object_type(ADD_layer,Polish_header_dict,QGisType,Feature_data_list):
-    #This code is reusable fo all feature types
+    #This code is reusable for all feature types
     Feature_id=0
     default_layer_attributes_odict=attribute_odict(QGisType)
+
     for Feature_data in Feature_data_list:
         ADD_layer_provider= ADD_layer.dataProvider()
         Feature_attributes_dict=dict(default_layer_attributes_odict)
@@ -397,6 +415,10 @@ def parse_object_type(ADD_layer,Polish_header_dict,QGisType,Feature_data_list):
         Feature_attributes_dict['Img_id'] =[Polish_header_dict['ID'],Feature_attributes_dict['Feature_id'][1],Feature_attributes_dict['Feature_id'][2]]
         Data_objects=[]
         Data_objects_level_list=[]
+        Data_levels_used_set=set()
+        #Data_objects_level_dict={}
+        Data_objects_dict={}
+        obj_no=-1
         for read_line in Feature_data.split('\n'):
             
             if not read_line[:1]==";":
@@ -405,53 +427,89 @@ def parse_object_type(ADD_layer,Polish_header_dict,QGisType,Feature_data_list):
                 if data_pair[0]=='Type':
                     pass
                     #print data_pair[1]
+                    
                 try:
                     if Feature_attributes_dict[data_pair[0]] is not None:
-                        Feature_attributes_dict[data_pair[0]]=[data_pair[1],Feature_attributes_dict[data_pair[0]][1],Feature_attributes_dict[data_pair[0]][2]]
+                        Feature_attributes_dict[data_pair[0]]=[(data_pair[1]).rstrip(),Feature_attributes_dict[data_pair[0]][1],Feature_attributes_dict[data_pair[0]][2]]
                     else:
                         pass
-                except:    
-                    if read_line[:4]=='Data':
+                except:
+                    pass
+                    #used to have data level stuff here
                         
-                        #Add objects to feature
-                        #Add data level
-                        Data_level=data_pair[0][5:]
-                        Data_objects_level_list.append(Data_level)
-                        #Add points to list of points
-                        Data_object_point_list=[]
-                        DATA_RES_STRING='-*\d+\.*\d*,-*\d+\.*\d*'
-                        DATA_REGEX_HAYSTACK=data_pair[1]
-                        DATA_REGEX_STRING=re.compile(DATA_RES_STRING)
-                        DATA_REGEX_MATCH = DATA_REGEX_STRING.findall(DATA_REGEX_HAYSTACK)
-                        Data_object_points=[]
-                        for latlonpair in DATA_REGEX_MATCH:
-                            latlon=latlonpair.split(',')
-                            Data_Point=QgsPoint(float(latlon[1]),float(latlon[0]))
-                            Data_object_points.append(Data_Point)
-                        Data_objects.append(Data_object_points)
-                    if read_line[:3]=='Nod':
-                        NodeNo=int(data_pair[0][3:])
-                        NewNodeString=str(NodeNo)+','+data_pair[1]
-                        OldNodeString=Feature_attributes_dict['NodIDs'][0]
-                        if len(OldNodeString)>1:
-                            separator='|'
-                        else:
-                            separator=''
-                        Feature_attributes_dict['NodIDs']=[OldNodeString+separator+NewNodeString,Feature_attributes_dict['NodIDs'][1],Feature_attributes_dict['NodIDs'][2]]
-
+                if read_line[:3]=='Nod':
+                    NodeNo=int(data_pair[0][3:])
+                    NewNodeString=str(NodeNo)+','+data_pair[1]
+                    OldNodeString=Feature_attributes_dict['NodIDs'][0]
+                    if len(OldNodeString)>1:
+                        separator='|'
+                    else:
+                        separator=''
+                    Feature_attributes_dict['NodIDs']=[OldNodeString+separator+NewNodeString,Feature_attributes_dict['NodIDs'][1],Feature_attributes_dict['NodIDs'][2]]
+            
+                if data_pair[0]=='EndLevel':
+                    MP_BIT_LEVEL=Polish_header_dict['Level'+''.join(c for c in str(data_pair[1]) if c in digits)]
+                    Feature_attributes_dict[data_pair[0]]=[MP_BIT_LEVEL,Feature_attributes_dict[data_pair[0]][1],Feature_attributes_dict[data_pair[0]][2]]
+                
+                if read_line[:4]=='Data':
+                    obj_no+=1
+                    #Add objects to feature
+                    #Add data level
+                    Data_level=int(data_pair[0][4:])
+                    
+                    Data_levels_used_set.add(Data_level)
+                    Data_objects_level_list.append(Data_level)
+                    
+                    special_attribute='DataLevel'
+                    Feature_attributes_dict[special_attribute]=[Data_level,Feature_attributes_dict[special_attribute][1],Feature_attributes_dict[special_attribute][2]]
+                    
+                    #Add points to list of points
+                    Data_object_point_list=[]
+                    DATA_RES_STRING='-*\d+\.*\d*,-*\d+\.*\d*'
+                    DATA_REGEX_HAYSTACK=data_pair[1]
+                    DATA_REGEX_STRING=re.compile(DATA_RES_STRING)
+                    DATA_REGEX_MATCH = DATA_REGEX_STRING.findall(DATA_REGEX_HAYSTACK)
+                    Data_object_points=[]
+                    for latlonpair in DATA_REGEX_MATCH:
+                        latlon=latlonpair.split(',')
+                        Data_Point=QgsPoint(float(latlon[1]),float(latlon[0]))
+                        Data_object_points.append(Data_Point)
+                    Data_objects.append(Data_object_points)
+                    Data_objects_dict[obj_no]=[Data_level,Data_object_points]
+                    
+                    
         #Add feature to layer
-        #At this point we have all the attributes of the feature and a list of objects in htat feature each object being a list of latlon points
+        #At this point we have all the attributes of the feature and a dictionary of objects in that feature each object being a list of latlon points
         
+
+
         if QGisType==QGis.Polygon:
-                feat = QgsFeature()
+            for used_level in Data_levels_used_set:
+                is_outer_ring=True
+                for Data_object in Data_objects_dict:
+                    if Data_objects_dict[Data_object][0]==used_level:
+                        if is_outer_ring:
+                            is_outer_ring=False
+                            feat = QgsFeature()
+                            polygon_rings=[]
+                            polygon_rings.append(Data_objects_dict[Data_object][1])
+                        else:
+                            polygon_rings.append(Data_objects_dict[Data_object][1])
+
                 feat.setGeometry(QgsGeometry.fromPolygon(Data_objects))
-                ring_objects=[]
+                
                 #for index, Data_object in enumerate(Data_objects):
                 #    ring_object=[]
                 #    for data_point in Data_object:
                 attributes_list=[]
                 for index, attribute_name in enumerate(default_layer_attributes_odict):
-                    attributes_list.append(Feature_attributes_dict[attribute_name][0])
+                    if attribute_name=='DataLevel':
+                        #print "setting DataLevel to "+str(used_level)
+                        attributes_list.append(used_level)
+                    else:
+                        #print attribute_name
+                        attributes_list.append(Feature_attributes_dict[attribute_name][0])
+                #print attributes_list
                 feat.setAttributes(attributes_list)
                 (res, outFeats) = ADD_layer.dataProvider().addFeatures( [ feat ] )
   
@@ -470,17 +528,17 @@ def parse_object_type(ADD_layer,Polish_header_dict,QGisType,Feature_data_list):
                     
             
         if QGisType==QGis.Line:
-                feat = QgsFeature()           
-                feat.setGeometry(QgsGeometry.fromMultiPolyline(Data_objects))
-                line_objects=[]
-                #for index, Data_object in enumerate(Data_objects):
-                #    ring_object=[]
-                #    for data_point in Data_object:
-                attributes_list=[]
-                for index, attribute_name in enumerate(default_layer_attributes_odict):
-                    attributes_list.append(Feature_attributes_dict[attribute_name][0])
-                feat.setAttributes(attributes_list)
-                (res, outFeats) = ADD_layer.dataProvider().addFeatures( [ feat ] )
+            feat = QgsFeature()
+            feat.setGeometry(QgsGeometry.fromMultiPolyline(Data_objects))
+            line_objects=[]
+            #for index, Data_object in enumerate(Data_objects):
+            #    ring_object=[]
+            #    for data_point in Data_object:
+            attributes_list=[]
+            for index, attribute_name in enumerate(default_layer_attributes_odict):
+                attributes_list.append(Feature_attributes_dict[attribute_name][0])
+            feat.setAttributes(attributes_list)
+            (res, outFeats) = ADD_layer.dataProvider().addFeatures( [ feat ] )
     #ADD_layer.updateExtents()
     #QgsMapLayerRegistry.instance().addMapLayer(ADD_layer)
     #qgis.utils.iface.setActiveLayer(ADD_layer)
@@ -542,12 +600,12 @@ def export_polish(self,layers_list,output_file,import_dict):
     
     with io.open(polish_temp_file, 'w',1,None,None,'\r\n') as polish_file:
         #Write header to file
-        print 'writing to file'
+        #print 'writing '+output_file
 #        #polish_file.write(r';')# generated by Mr Purples pyQGIS polish exporter '+str(myver())+u'\n')
         polish_file.write(u'[IMG ID]\n')
         for header_key in default_header:
             polish_string= str(header_key)+"="+str(default_header[header_key]) 
-            polish_file.write(unicode(polish_string)+'\n')
+            polish_file.write(unicode(polish_string).rstrip()+'\n')
         polish_file.write(u'[END-IMG ID]\n')
         polish_file.write(u'\n')
         #Loop through layers
@@ -587,6 +645,13 @@ def export_polish(self,layers_list,output_file,import_dict):
                 kind_is_point=0
                 kind_is_area=0
                 kind_is_line=0
+                #help(feature)
+                #help(geom)
+                #print "wkbtype is "+str(geom.wkbType())
+                #print "type is "+str(geom.type())
+                if geom.wkbType()==QGis.WKBMultiPoint:
+                    pass
+                    #print "Point: " + str(geom.asMultiPoint())
                 if geom.type() == QGis.Point:
                     outputtype='[POI]'
                     #print "POI found"
@@ -619,62 +684,7 @@ def export_polish(self,layers_list,output_file,import_dict):
                         else:
                             feature_attributes_odict[default_feature_attribute] = None
                 #print feature_attributes_odict[default_feature_attribute]
-                #get mp attribs or set to default
-                #attrs = feature.attributes()
-                #if MP_TYPE_idx >=0:
-                #    MP_TYPE_val=(attrs[MP_TYPE_idx])
-                #    #print MP_TYPE_val
-                #else:
-                #    MP_TYPE_val="0x00"
-                    
-                #if MP_BIT_LVL_idx >=0:
-                #    MP_BIT_LVL_val=(attrs[MP_BIT_LVL_idx])
-                #else:
-                #    MP_BIT_LVL_val=24
-                #try:
-                #    END_LVL_val=BIT_LEVEL_DICT[MP_BIT_LVL_val]
-                #except:
-                #    print "No value found for MP_BIT_LVL attribute id reported as "+str(MP_BIT_LVL_idx)+". MP_TYPE for this feature was reported to be "+str(MP_TYPE_val)
-                #    print "attributes are:"
-                #    i=0
-                #    for attribute in attribute_list:
-                #        print "id "+str(i)+" is "+str(attribute.name())+" and has a value of "+str(attrs[i])
-                #        i=i+1
-                #    END_LVL_val=1
-                #    print "level set to "+str(END_LVL_val)
-                    
-                #MP_DTA_LVL_val=0
-                #try:
-                #    if MP_DTA_LVL_idx >=0:
-                #        MP_DTA_LVL_val=(attrs[MP_DTA_LVL_idx])
-                #    else:
-                #        MP_DTA_LVL_val=0
-                #except:
-                #    pass
-                #DATA_LVL=BIT_LEVEL_DICT[MP_DTA_LVL_val]
-                #DATA_LVL=MP_DTA_LVL_val
-    
-                #MP_NAME_field_name=''
-                #if MP_NAME_idx>=0:
-                #    MP_NAME_field_name=(attrs[MP_NAME_idx])
-                #    LOCAL_NAME_idx = layer.fieldNameIndex(str(MP_NAME_field_name))
-                #    MP_NAME_val=''
-                #    if LOCAL_NAME_idx>=0:
-                #        MP_NAME_val=(attrs[LOCAL_NAME_idx])
-                #    else:
-                #        MP_NAME_val=''
-                #else:
-                #    MP_NAME_val=''
-
-                #try:
-                #    if MP_NAME_val.isNull():
-                #        MP_NAME_val=''
-                #except:
-                #    pass
                 
-                #print "MP_TYPE is "+str(MP_TYPE_val)
-                #print "MP_BIT_LVL is "+str(MP_BIT_LVL_val) 
-                #print "NAME is "+str(NAME_val)
                 geometry_wkbtype=geom.wkbType()
                 if geometry_wkbtype == QGis.WKBPoint:
                     #outputtype='[POI]'
@@ -685,11 +695,12 @@ def export_polish(self,layers_list,output_file,import_dict):
                     writepolishobject(polish_file,outputtype,feature_attributes_odict,file_header_dict,xform,datalinesgeom)
                 if geometry_wkbtype == QGis.WKBMultiPoint:
                     #outputtype='[POI]'
-                    for geomprime in geom.asPoint():
+                    for geomprime in geom.asMultiPoint():
                         datalinegeom=[]
                         datalinegeom.append(geomprime)
                         datalinesgeom=[]
                         datalinesgeom.append(datalinegeom)
+                        #print "found my code"
                         writepolishobject(polish_file,outputtype,feature_attributes_odict,file_header_dict,xform,datalinesgeom)
                 if geometry_wkbtype == QGis.WKBLineString:
                     #outputtype='[POLYLINE]'
@@ -765,6 +776,24 @@ class Polish:
                 if verbose(): print "Could not find "+file
             
         export_polish(self,layers_list,output_file,import_dict)
+        
+    def export_layers_as_polish(self,layers_list,output_file,import_dict={}):
+        
+        use_layers_list=[]
+        for layer in layers_list:
+            if layer.isValid():
+                #iter = layer.getFeatures()
+                feature_count=layer.featureCount ()
+                #for feature in iter:
+                #    feature_count+=1
+                if feature_count>0:
+                    if verbose(): print "Exporting "+layer.name()+" layer to "+output_file
+                    use_layers_list.append(layer)
+            else:
+                if verbose(): print "layer not valid"
+
+            
+        export_polish(self,layers_list,output_file,import_dict)
     
     def get_polish_file_header(self,Polish_file):
         if os.path.exists(Polish_file):
@@ -786,7 +815,9 @@ class Polish:
                 except:
                     print "Did not find "+str(header_key)+" using default value '"+str(default_header[header_key])+"'"
                     Polish_header_dict[header_key]=default_header[header_key]
-        return Polish_header_dict
+            return Polish_header_dict
+        else:
+            raise ValueError('File not found ',Polish_file)
                         
     def import_polish_files(self,Polish_file_list):
         epsg_code=4326
@@ -799,6 +830,7 @@ class Polish:
 
         #Create Polygon layer
         layer_string=build_create_layer_string(QGis.WKBPolygon,epsg_code)
+        #print layer_string
         Polygon_layer= QgsVectorLayer(layer_string, "Polygon_layer", "memory")
         Polygon_provider = Polygon_layer.dataProvider()
         QgsMapLayerRegistry.instance().addMapLayer(Polygon_layer)
@@ -809,10 +841,10 @@ class Polish:
         Line_provider = Line_layer.dataProvider()
         QgsMapLayerRegistry.instance().addMapLayer(Line_layer)
         
-        layer_handles=[]
-        layer_handles.append(POI_layer)
-        layer_handles.append(Polygon_layer)
-        layer_handles.append(Line_layer)
+        layer_handles={}
+        layer_handles['point']=POI_layer
+        layer_handles['line']=Line_layer
+        layer_handles['polygon']=Polygon_layer
         
         for Polish_file in Polish_file_list:
             if os.path.exists(Polish_file):
@@ -849,7 +881,9 @@ class Polish:
                     try:
                         regex_line = regex_match.group(0)
                         #print 'found '+regex_line
-                        Polish_header_dict[header_key]=(regex_line.split("="))[1]
+                        header_value=((regex_line.split("="))[1])
+                        #print header_value
+                        Polish_header_dict[header_key]=header_value.rstrip()
                     except:
                         print "Did not find "+str(header_key)+" using default value '"+str(default_header[header_key])+"'"
                         Polish_header_dict[header_key]=default_header[header_key]
@@ -880,6 +914,8 @@ class Polish:
                 for dataset in Feature_data_list:
                     pass
                     #print dataset
+                #MP_BIT_LEVEL=Polish_header_dict['Level2']
+                #print MP_BIT_LEVEL
                 parse_object_type(Line_layer, Polish_header_dict, QGis.Line,Feature_data_list)
                 
         QgsMapLayerRegistry.instance().addMapLayer(Polygon_layer)
@@ -1004,7 +1040,54 @@ class Polish:
         default_header = default_pv_header()
         for header_key in default_header:
             print str(header_key)+' = '+str(default_header[header_key]  )
-        
+            
+    def parallel_compile_by_cgpsmapper(self,mp_files_list,cgpsmapper_path,output_folder):
+        if len(mp_files_list)>0:
+            #NB needs to correctly reparse cgpsmapper path
+            mp_file_list=[]
+            for raw_mp_file in mp_files_list:
+                output="Z:"+raw_mp_file
+                output= string.replace(output, '/', '\\\\')
+                mp_file_list.append(output)
+            subprocess_args=[]
+            i=0
+            for mp_file_path in mp_file_list:
+                i+=1
+                command_script=os.path.join(tempfile.gettempdir(),"command_script_"+str(i)+".sh")
+                try:
+                    os.remove("/tmp/command_script_"+str(i)+".sh")
+                except:
+                    pass
+                f1 = open(command_script,'w')
+                f1.write("#!/bin/bash\n")
+                f1.write("clickcgpsmapper.sh &\n")
+                f1.write(r'wine "c:\\Program Files (x86)\\cGPSmapper\\cgpsmapper.exe" ac "'+mp_file_path+'"'+"\n")
+                f1.close()
+                st = os.stat(command_script)
+                os.chmod(command_script, st.st_mode | stat.S_IEXEC)
+
+            parallel_script=os.path.join(tempfile.gettempdir(),"gnu_parallel_script.sh")
+            try:
+                os.remove(parallel_script)
+            except:
+                pass
+            f2 = open(parallel_script,'w')
+            f2.write("#!/bin/bash\n")
+            f2.write("cd "+output_folder+"\n")
+            f2.write("clickcgpsmapper.sh &\n")
+            f2.write("parallel "+os.path.join(tempfile.gettempdir(),"command_script_{1}.sh")+" ::: {1.."+str(i)+"}")
+            f2.close()
+            st = os.stat(parallel_script)
+            os.chmod(parallel_script, st.st_mode | stat.S_IEXEC)
+            p = Popen(parallel_script, stdin=PIPE, stdout=PIPE, stderr=PIPE)
+            output, err = p.communicate(b"input data that is passed to subprocess' stdin")
+            rc = p.returncode
+            print output
+            #os.remove(parallel_script)
+            for n in range(i):
+                pass
+                #os.remove("/tmp/command_script_"+str(i)+".sh")
+
     def compile_by_cgpsmapper(self,mp_files_list,cgpsmapper_path,import_pv_dict={}):
         if isLinux():
             if verbose(): print "Running in linux checking for WINE"
