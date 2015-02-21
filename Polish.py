@@ -645,78 +645,81 @@ def export_polish(self,layers_list,output_file,import_dict):
                 kind_is_point=0
                 kind_is_area=0
                 kind_is_line=0
-                #help(feature)
-                #help(geom)
-                #print "wkbtype is "+str(geom.wkbType())
-                #print "type is "+str(geom.type())
-                if geom.wkbType()==QGis.WKBMultiPoint:
-                    pass
-                    #print "Point: " + str(geom.asMultiPoint())
-                if geom.type() == QGis.Point:
-                    outputtype='[POI]'
-                    #print "POI found"
-                if geom.type() == QGis.Line:
-                    outputtype='[POLYLINE]'
-                    #print "LINE found"
-                if geom.type() == QGis.Polygon:
-                    outputtype='[POLYGON]'
-                    #print "AREA found"
-                QGisType=geom.type()
-                default_feature_attributes_odict=attribute_odict(QGisType)
-                feature_attributes_odict = collections.OrderedDict()
-                for default_feature_attribute in default_feature_attributes_odict:
-                    attribute_name=default_feature_attributes_odict[default_feature_attribute][2]
-                    layer_attribute_idx=layer.fieldNameIndex(attribute_name)
-                    if layer_attribute_idx>=0:
-                        if str(feature.attributes()[layer_attribute_idx])=='NULL':
-                            feature_attributes_odict[default_feature_attribute]=None
-                            #print "NULL found"
+                if geom:
+                    #help(feature)
+                    #help(geom)
+                    #print "wkbtype is "+str(geom.wkbType())
+                    #print "type is "+str(geom.type())
+                    if geom.wkbType()==QGis.WKBMultiPoint:
+                        pass
+                        #print "Point: " + str(geom.asMultiPoint())
+                    if geom.type() == QGis.Point:
+                        outputtype='[POI]'
+                        #print "POI found"
+                    if geom.type() == QGis.Line:
+                        outputtype='[POLYLINE]'
+                        #print "LINE found"
+                    if geom.type() == QGis.Polygon:
+                        outputtype='[POLYGON]'
+                        #print "AREA found"
+                    QGisType=geom.type()
+                    default_feature_attributes_odict=attribute_odict(QGisType)
+                    feature_attributes_odict = collections.OrderedDict()
+                    for default_feature_attribute in default_feature_attributes_odict:
+                        attribute_name=default_feature_attributes_odict[default_feature_attribute][2]
+                        layer_attribute_idx=layer.fieldNameIndex(attribute_name)
+                        if layer_attribute_idx>=0:
+                            if str(feature.attributes()[layer_attribute_idx])=='NULL':
+                                feature_attributes_odict[default_feature_attribute]=None
+                                #print "NULL found"
+                            else:
+                                #print "Not NULL found"
+                                #print str(feature.attributes()[layer_attribute_idx])
+                                if feature.attributes()[layer_attribute_idx]==default_feature_attributes_odict[default_feature_attribute][0]:
+                                    pass
+                                feature_attributes_odict[default_feature_attribute] = feature.attributes()[layer_attribute_idx]
                         else:
-                            #print "Not NULL found"
-                            #print str(feature.attributes()[layer_attribute_idx])
-                            if feature.attributes()[layer_attribute_idx]==default_feature_attributes_odict[default_feature_attribute][0]:
-                                pass
-                            feature_attributes_odict[default_feature_attribute] = feature.attributes()[layer_attribute_idx]
-                    else:
-                        
-                        if default_feature_attributes_odict[default_feature_attribute][3]:
-                            feature_attributes_odict[default_feature_attribute] = default_feature_attributes_odict[default_feature_attribute][0]
-                        else:
-                            feature_attributes_odict[default_feature_attribute] = None
-                #print feature_attributes_odict[default_feature_attribute]
-                
-                geometry_wkbtype=geom.wkbType()
-                if geometry_wkbtype == QGis.WKBPoint:
-                    #outputtype='[POI]'
-                    datalinegeom=[]
-                    datalinegeom.append(geom.asPoint())
-                    datalinesgeom=[]
-                    datalinesgeom.append(datalinegeom)
-                    writepolishobject(polish_file,outputtype,feature_attributes_odict,file_header_dict,xform,datalinesgeom)
-                if geometry_wkbtype == QGis.WKBMultiPoint:
-                    #outputtype='[POI]'
-                    for geomprime in geom.asMultiPoint():
+                            
+                            if default_feature_attributes_odict[default_feature_attribute][3]:
+                                feature_attributes_odict[default_feature_attribute] = default_feature_attributes_odict[default_feature_attribute][0]
+                            else:
+                                feature_attributes_odict[default_feature_attribute] = None
+                    #print feature_attributes_odict[default_feature_attribute]
+                    
+                    geometry_wkbtype=geom.wkbType()
+                    if geometry_wkbtype == QGis.WKBPoint:
+                        #outputtype='[POI]'
                         datalinegeom=[]
-                        datalinegeom.append(geomprime)
+                        datalinegeom.append(geom.asPoint())
                         datalinesgeom=[]
                         datalinesgeom.append(datalinegeom)
-                        #print "found my code"
                         writepolishobject(polish_file,outputtype,feature_attributes_odict,file_header_dict,xform,datalinesgeom)
-                if geometry_wkbtype == QGis.WKBLineString:
-                    #outputtype='[POLYLINE]'
-                    datalinesgeom=[]
-                    datalinesgeom.append(geom.asPolyline())
-                    writepolishobject(polish_file,outputtype,feature_attributes_odict,file_header_dict,xform,datalinesgeom)
-                if geometry_wkbtype == QGis.WKBMultiLineString:
-                    #outputtype='[POLYLINE]'
-                    writepolishobject(polish_file,outputtype,feature_attributes_odict,file_header_dict,xform,geom.asMultiPolyline())
-                if geometry_wkbtype == QGis.WKBPolygon:
-                    #outputtype='[POLYGON]'
-                    writepolishobject(polish_file,outputtype,feature_attributes_odict,file_header_dict,xform,geom.asPolygon())
-                if geometry_wkbtype == QGis.WKBMultiPolygon:
-                    #outputtype='[POLYGON]'
-                    for datalinesgeom in geom.asMultiPolygon():
+                    if geometry_wkbtype == QGis.WKBMultiPoint:
+                        #outputtype='[POI]'
+                        for geomprime in geom.asMultiPoint():
+                            datalinegeom=[]
+                            datalinegeom.append(geomprime)
+                            datalinesgeom=[]
+                            datalinesgeom.append(datalinegeom)
+                            #print "found my code"
+                            writepolishobject(polish_file,outputtype,feature_attributes_odict,file_header_dict,xform,datalinesgeom)
+                    if geometry_wkbtype == QGis.WKBLineString:
+                        #outputtype='[POLYLINE]'
+                        datalinesgeom=[]
+                        datalinesgeom.append(geom.asPolyline())
                         writepolishobject(polish_file,outputtype,feature_attributes_odict,file_header_dict,xform,datalinesgeom)
+                    if geometry_wkbtype == QGis.WKBMultiLineString:
+                        #outputtype='[POLYLINE]'
+                        writepolishobject(polish_file,outputtype,feature_attributes_odict,file_header_dict,xform,geom.asMultiPolyline())
+                    if geometry_wkbtype == QGis.WKBPolygon:
+                        #outputtype='[POLYGON]'
+                        writepolishobject(polish_file,outputtype,feature_attributes_odict,file_header_dict,xform,geom.asPolygon())
+                    if geometry_wkbtype == QGis.WKBMultiPolygon:
+                        #outputtype='[POLYGON]'
+                        for datalinesgeom in geom.asMultiPolygon():
+                            writepolishobject(polish_file,outputtype,feature_attributes_odict,file_header_dict,xform,datalinesgeom)
+                else:
+                    print "WARNING: No geometry found for feature id: "+str(feature.id())
     shutil.copy2(polish_temp_file, output_file)
     os.remove(polish_temp_file)
     print "wrote "+output_file
