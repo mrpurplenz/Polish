@@ -31,6 +31,8 @@ First install QGIS
 
 This plugin is installable by downloading and extracting the Polish folder into
 <QGIS installation folder>\apps\qgis\python\plugins
+or perhaps
+/home/<user name>/.qgis2/python/plugins/
 and then activating it by going to "plugins/manage and install plugins" then select "Polish"
 
 The functions can be accessed from the console as follows
