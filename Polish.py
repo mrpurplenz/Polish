@@ -188,6 +188,10 @@ def bit_level(file_header_dict,bit_val):
         output=BIT_LEVEL_DICT[int(bit_val)]
     except:
         print BIT_LEVEL_DICT
+        print "bit_val is:"+str(bit_val)
+        print "WARNING INVALID MP_BIT_VAL SETTING DATA LEVEL 0"
+        output=0
+            
     return output
     
     
@@ -581,11 +585,9 @@ def export_polish(self,layers_list,output_file,import_dict):
     #Add import_dict to header info
     
     for header_key in default_header:
-        try:
-            default_header[header_key]=import_dict[header_key]
-        except:
-            pass
-    
+        for import_key in import_dict:
+            if header_key==import_key:
+                default_header[header_key]=import_dict[header_key]
     file_header_dict=default_header
     
     #Prepare BIT_LEVEL dictionary
@@ -665,6 +667,8 @@ def export_polish(self,layers_list,output_file,import_dict):
                     QGisType=geom.type()
                     default_feature_attributes_odict=attribute_odict(QGisType)
                     feature_attributes_odict = collections.OrderedDict()
+                    MP_NAME_SET=False
+                   
                     for default_feature_attribute in default_feature_attributes_odict:
                         attribute_name=default_feature_attributes_odict[default_feature_attribute][2]
                         layer_attribute_idx=layer.fieldNameIndex(attribute_name)
@@ -684,6 +688,44 @@ def export_polish(self,layers_list,output_file,import_dict):
                                 feature_attributes_odict[default_feature_attribute] = default_feature_attributes_odict[default_feature_attribute][0]
                             else:
                                 feature_attributes_odict[default_feature_attribute] = None
+                        MP_NAMElayer_attribute_idx=layer.fieldNameIndex("MP_NAME")
+                        
+                        if MP_NAMElayer_attribute_idx>=0:
+                            #raise ValueError('FOUND MP_NAME ATTR')
+                            MP_LBL_layer_attribute_idx=layer.fieldNameIndex("MP_LBL")
+                            if MP_LBL_layer_attribute_idx<=0:
+                                #raise ValueError('HAVE MP_NAME ATTR & NO MP_LBL ATTR')
+                                #layer_attribute_idx=layer.fieldNameIndex("MP_NAME")
+                                MP_LBL_ATTR=str(feature.attributes()[MP_NAMElayer_attribute_idx])
+                                #raise ValueError('MP_LBLs contained in attribute called'+MP_LBL_ATTR)
+                                if MP_LBL_ATTR =='NULL':
+                                    #raise ValueError('EMPTY MP_NAME ATTR')
+                                    MP_LBL_val=None
+                                    MP_NAME_SET=True
+
+                                else:
+                                    
+                                    MP_LBL_ATTR_idx=layer.fieldNameIndex(MP_LBL_ATTR)
+                                    if MP_LBL_ATTR_idx>=0:
+                                        MP_LBL_val=str(feature.attributes()[MP_LBL_ATTR_idx])
+                                        MP_NAME_SET=True
+                                        if MP_LBL_val=="NULL":
+                                            MP_LBL_val=None
+                                        else:
+                                            pass
+                                            #raise ValueError('FOUND ACTUAL EXTANT MP_NAME ATTR'+MP_LBL_val)
+                    if MP_NAME_SET:
+                        #print feature_attributes_odict
+                        temp_feature_attributes_odict = collections.OrderedDict()
+                        for key in feature_attributes_odict:
+                            if key == "Label":
+                                temp_feature_attributes_odict[key]=MP_LBL_val
+                            else:
+                                temp_feature_attributes_odict[key]=feature_attributes_odict[key]
+                        feature_attributes_odict=temp_feature_attributes_odict
+                        temp_feature_attributes_odict=None
+                        #print feature_attributes_odict
+                        
                     #print feature_attributes_odict[default_feature_attribute]
                     
                     geometry_wkbtype=geom.wkbType()
