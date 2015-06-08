@@ -26,8 +26,10 @@ from subprocess import call
 import collections
 import string
 import stat
+import subprocess
 from subprocess import Popen
 from subprocess import PIPE
+from subprocess import check_output
 from string import digits
 
 def attribute_odict(QGisType):
@@ -171,6 +173,12 @@ def get_WINEpath():
 
 def isLinux():
     if platform.system()=='Linux':
+        return True
+    else:
+        return False
+        
+def isWindows():
+    if platform.system()=='Windows':
         return True
     else:
         return False
@@ -1135,10 +1143,13 @@ class Polish:
 
     def compile_by_cgpsmapper(self,mp_files_list,cgpsmapper_path,import_pv_dict={}):
         if isLinux():
-            if verbose(): print "Running in linux checking for WINE"
-            if verbose(): print "Wine path is "+str(get_WINEpath())
-        username=getpass.getuser()    
-        cgpsmapper_path=get_cGPSmapper_path()
+            if verbose(): print "Running in linux requires  WINE"
+            if verbose(): print "Running in linux requires  cpsmapper path as WINE dos path"
+            if verbose(): print "Wine located at "+str(get_WINEpath())
+        if isWindows():
+            print "Running in windows"
+        username=getpass.getuser()
+        #cgpsmapper_path=get_cGPSmapper_path()
         cgpsmapper_file_path=cgpsmapper_path+"\\"+"cgpsmapper.exe"
         cpreview_file_path=cgpsmapper_path+"\\"+"cpreview.exe"
         os_temp=tempfile.gettempdir()
@@ -1159,6 +1170,7 @@ class Polish:
                     REGEX_MATCH = REGEX_STRING.match(REGEX_HAYSTACK)
                     if REGEX_MATCH:
                         match_string = REGEX_MATCH.group()
+                        break
                     else:
                         pass                  
                 img_ID=(match_string.split("="))[1]
@@ -1167,7 +1179,8 @@ class Polish:
           
                 os_id_file_path=os.path.join(tempfile.gettempdir(),id_file)
             
-            
+                Linux_full_command=""
+                wine_temp_unix_bak=""
                 if isLinux():
                     #shift wine temp path to os temp path
                     wine_temp_unix_bak = "/home/"+username+"/.wine/drive_c/users/"+username+"/TempBak"
@@ -1182,10 +1195,11 @@ class Polish:
                     wine_id_file_path=r"C:/users/"+username+r"/Temp/"+id_file
                     Linux_full_command=r"wine '"+cgpsmapper_file_path+"' '"+wine_id_file_path+"'"
                     if verbose(): print Linux_full_command
-                else:
+                
+                if isWindows():    
                     win_full_command=cgpsmapper_file_path+" "+os_id_file_path
                     if verbose(): print win_full_command
-                
+                    if verbose(): print "call(r'"+win_full_command+"', shell=True)"
                 shutil.copy(fname,os_id_file_path)
             
                 
@@ -1194,9 +1208,23 @@ class Polish:
                     status = call(Linux_full_command, shell=True)
                     status = call("rm -rf " + wine_temp_unix, shell=True)
                     status = call(r"mv " + wine_temp_unix_bak + r" " + wine_temp_unix, shell=True)
-                else:
-                    status = call(win_full_command, shell=True)
                 
+                if isWindows():
+                    streaming=True
+                    bin_path=cgpsmapper_path
+                    polish_path=os_id_file_path
+                    shell_command=[bin_path, polish_path]
+                    print "Running: "+" ".join(shell_command)
+                    p = subprocess.Popen(shell_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE,stdin=subprocess.PIPE, bufsize=1)
+                    if streaming:
+                        with p.stdout:
+                            for line in iter(p.stdout.readline, b''):
+                                print line,
+                        p.wait() 
+                    else:
+                        out, err = p.communicate()
+                        print out
+                    
                 #Copy compiled files to oiginal mp file path
                 try:
                     shutil.copy(os.path.join(tempfile.gettempdir(),str(img_ID)+".img"),os.path.join(os.path.split(fname)[0],str(img_ID)+".img"))
