@@ -166,7 +166,7 @@ def verbose():
     return True
 
 def myver():
-    return "0.0.1"
+    return "0.0.2"
     
 def get_cGPSmapper_path():
     return r'C:\Program Files (x86)\cGPSmapper'
@@ -687,7 +687,10 @@ def rev_bit_level(file_header_dict,level_val):
     rev_BIT_LEVEL_DICT = {v:k for k, v in BIT_LEVEL_DICT.items()}
     return rev_BIT_LEVEL_DICT[level_val]
     
-def geomWrite(polish_file,pntsgeom,xform,DATA_LVL):
+def geomWrite(polish_file,pntsgeom,xform,DATA_LVL,compiler="cGPSmapper"):
+    dp=5
+    if compiler=="cGPSmapper":
+        dp=10
     Datastring=''
     firstpoint=0
     pointcount=0
@@ -700,7 +703,7 @@ def geomWrite(polish_file,pntsgeom,xform,DATA_LVL):
             Datastring=Datastring+'Data'+str(DATA_LVL)+'=('+Datastring
         else:
             Datastring=Datastring+',('
-        Datastring=Datastring+str(newQgsPoint.y())+','+str(newQgsPoint.x())+')'
+        Datastring=Datastring+("{0:."+str(dp)+"f}").format(newQgsPoint.y())+','+("{0:."+str(dp)+"f}").format(newQgsPoint.x())+')'
         if False: #This code is intended to split lines into 255 length lines for MKmap
             pointcount=pointcount+1
             if False:
@@ -708,13 +711,13 @@ def geomWrite(polish_file,pntsgeom,xform,DATA_LVL):
                 pointcount=0
                 firstpoint=0
                 polish_file.write(u''+Datastring+'\n')
-                Datastring='('+str(newQgsPoint.y())+','+str(newQgsPoint.x())+')'
+                Datastring='('+("{0:."+str(dp)+"f}").format(newQgsPoint.y())+','+("{0:."+str(dp)+"f}").format(newQgsPoint.x())+')'
                 ok_to_write_data=False
     if ok_to_write_data:
         polish_file.write(u''+Datastring+'\n')
 
 #def writepolishobject(polish_file,outputtype,MP_TYPE_val,MP_NAME_val,END_LVL_val,DATA_LVL,xform,datalinesgeom):
-def writepolishobject(polish_file,outputtype,Feature_attributes_odict,file_header_dict,xform,datalinesgeom):
+def writepolishobject(polish_file,outputtype,Feature_attributes_odict,file_header_dict,xform,datalinesgeom,compiler="cGPSmapper"):
     #print polish_file
     #print outputtype
     #print Feature_attributes_odict
@@ -765,12 +768,16 @@ def writepolishobject(polish_file,outputtype,Feature_attributes_odict,file_heade
             attr_val=None
         if attr_name=='Feature_id':
             attr_val=None
-            
+        if attr_name=='Type':
+            if compiler=="cGPSmapper":
+                pass
+            else:
+                attr_val=attr_val.lower()
         if attr_val==attribute_odict(QGisType)[attr_name][0]:
             attr_val=None
             
         if attr_val is not None:
-            polish_file.write(str(Feature_attribute)+u'='+str(Feature_attributes_odict[attr_name])+'\n')
+            polish_file.write(str(Feature_attribute)+u'='+str(attr_val)+'\n')
     
 
     #polish_file.write(u'Type='+str(MP_TYPE_val)+'\n')                    
@@ -778,7 +785,7 @@ def writepolishobject(polish_file,outputtype,Feature_attributes_odict,file_heade
     #    polish_file.write(u'Label='+str(MP_NAME_val)+'\n')
     #polish_file.write(u'EndLevel='+str(END_LVL_val)+'\n')
     for datalinegeom in datalinesgeom:
-        geomWrite(polish_file,datalinegeom,xform,DATA_LVL)
+        geomWrite(polish_file,datalinegeom,xform,DATA_LVL,compiler)
         
     polish_file.write(u'[END]\n\n')
     
@@ -1032,10 +1039,22 @@ def parse_object_type(ADD_layer,Polish_header_dict,QGisType,Feature_data_list):
     
     return True
 
+def internal_reorganise(layers_list):
+    diced_layers=[]
+    for input_layer in layers_list:
+        diced_layers.append(dice(input_layer,input_layer.name(),255))
+    output_handles=[]
+    for diced_layer in diced_layers:
+        output_handles.append(dehole(diced_layer,diced_layer.name()))
+        QgsMapLayerRegistry.instance().removeMapLayer(diced_layer.id())
+    return output_handles
 
-
-def export_polish(self,layers_list,output_file,import_dict):
-
+def export_polish(self,input_layers_list,output_file,import_dict,compiler="cGPSmapper"):
+    if compiler=="MapTk":
+        print "WARNING: RUNNING 'REORGANISE' FOR MapTk"
+        layers_list=internal_reorganise(input_layers_list)
+    else:
+        layers_list=input_layers_list
     #Build DEFAULT polish header dictionary
     polishexporter_ver=myver
     default_header = default_mp_header()
@@ -1217,7 +1236,7 @@ def export_polish(self,layers_list,output_file,import_dict):
                         datalinegeom.append(geom.asPoint())
                         datalinesgeom=[]
                         datalinesgeom.append(datalinegeom)
-                        writepolishobject(polish_file,outputtype,feature_attributes_odict,file_header_dict,xform,datalinesgeom)
+                        writepolishobject(polish_file,outputtype,feature_attributes_odict,file_header_dict,xform,datalinesgeom,compiler)
                     if geometry_wkbtype == QGis.WKBMultiPoint:
                         #outputtype='[POI]'
                         for geomprime in geom.asMultiPoint():
@@ -1226,22 +1245,22 @@ def export_polish(self,layers_list,output_file,import_dict):
                             datalinesgeom=[]
                             datalinesgeom.append(datalinegeom)
                             #print "found my code"
-                            writepolishobject(polish_file,outputtype,feature_attributes_odict,file_header_dict,xform,datalinesgeom)
+                            writepolishobject(polish_file,outputtype,feature_attributes_odict,file_header_dict,xform,datalinesgeom,compiler)
                     if geometry_wkbtype == QGis.WKBLineString:
                         #outputtype='[POLYLINE]'
                         datalinesgeom=[]
                         datalinesgeom.append(geom.asPolyline())
-                        writepolishobject(polish_file,outputtype,feature_attributes_odict,file_header_dict,xform,datalinesgeom)
+                        writepolishobject(polish_file,outputtype,feature_attributes_odict,file_header_dict,xform,datalinesgeom,compiler)
                     if geometry_wkbtype == QGis.WKBMultiLineString:
                         #outputtype='[POLYLINE]'
-                        writepolishobject(polish_file,outputtype,feature_attributes_odict,file_header_dict,xform,geom.asMultiPolyline())
+                        writepolishobject(polish_file,outputtype,feature_attributes_odict,file_header_dict,xform,geom.asMultiPolyline(),compiler)
                     if geometry_wkbtype == QGis.WKBPolygon:
                         #outputtype='[POLYGON]'
-                        writepolishobject(polish_file,outputtype,feature_attributes_odict,file_header_dict,xform,geom.asPolygon())
+                        writepolishobject(polish_file,outputtype,feature_attributes_odict,file_header_dict,xform,geom.asPolygon(),compiler)
                     if geometry_wkbtype == QGis.WKBMultiPolygon:
                         #outputtype='[POLYGON]'
                         for datalinesgeom in geom.asMultiPolygon():
-                            writepolishobject(polish_file,outputtype,feature_attributes_odict,file_header_dict,xform,datalinesgeom)
+                            writepolishobject(polish_file,outputtype,feature_attributes_odict,file_header_dict,xform,datalinesgeom,compiler)
                 else:
                     print "WARNING: No geometry found for feature id: "+str(feature.id())
     shutil.copy2(polish_temp_file, output_file)
@@ -1278,13 +1297,13 @@ class Polish:
     def build_memory_layer_string(self,QGisWKBType,epsg_code):
         return build_create_layer_string(QGisWKBType,epsg_code)
         
-    def export_layers_as_polish(self,layers_list,output_file,import_dict={}):
-        export_polish(self,layers_list,output_file,import_dict)
+    def export_layers_as_polish(self,layers_list,output_file,import_dict={},compiler="cGPSmapper"):
+        export_polish(self,layers_list,output_file,import_dict,compiler)
         
     def WKBtype_to_GeomType(self,QGisWKBType):
         return WKBType_to_type(QGisWKBType)
                         
-    def export_files_as_polish(self,files_list,output_file,import_dict={}):
+    def export_files_as_polish(self,files_list,output_file,import_dict={},compiler="cGPSmapper"):
         layers_list=[]
         for file in files_list:
             if os.path.exists(file):
@@ -1301,10 +1320,10 @@ class Polish:
                     if verbose(): print file+" not valid"
             else:
                 if verbose(): print "Could not find "+file
-            
-        export_polish(self,layers_list,output_file,import_dict)
         
-    def export_layers_as_polish(self,layers_list,output_file,import_dict={}):
+        export_polish(self,layers_list,output_file,import_dict,compiler)
+        
+    def export_layers_as_polish(self,layers_list,output_file,import_dict={},compiler="cGPSmapper"):
         
         use_layers_list=[]
         for layer in layers_list:
@@ -1320,7 +1339,7 @@ class Polish:
                 if verbose(): print "layer not valid"
 
             
-        export_polish(self,layers_list,output_file,import_dict)
+        export_polish(self,layers_list,output_file,import_dict,compiler)
     
     def get_polish_file_header(self,Polish_file):
         if os.path.exists(Polish_file):
@@ -1451,16 +1470,10 @@ class Polish:
         self.iface.mapCanvas().refresh()
         return layer_handles
 
-    def reorganise(self,layers_list):
-        diced_layers=[]
-        for input_layer in layers_list:
-            diced_layers.append(dice(input_layer,input_layer.name(),255))
-        output_handles=[]
-        for diced_layer in diced_layers:
-            output_handles.append(dehole(input_layer,input_layer.name()))
-            QgsMapLayerRegistry.instance().removeMapLayer(diced_layer.id())
-        return output_handles
-
+    def reorganise(self,input_layers_list):
+        layers_list=internal_reorganise(input_layers_list)
+        return layers_list
+        
     def compile_preview_by_cgpsmapper(self,img_files_list,import_pv_dict):
         cgpsmapper_path=get_cGPSmapper_path()
         #cgpsmapper_file_path=os.path.join(cgpsmapper_path,"cgpsmapper.exe")
