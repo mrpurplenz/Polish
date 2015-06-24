@@ -137,7 +137,7 @@ def QGisWktType_to_text(QGisWKBType):
         return "MultiPolygon"
     if QGisWKBType==7:#WKBMultiPolygon 
         return "NoGeometry"
-        
+        QGisType_to_text(WKBType_to_type(QGisWKBType))
 def QGisType_to_text(QGisType):
     if QGisType==0:
         return "Point"
@@ -149,7 +149,19 @@ def QGisType_to_text(QGisType):
         return "UnknownGeometry"
     if QGisType==4:
         return "NoGeometry"
-
+        
+def QGisType_to_URItext(QGisType):
+    if QGisType==0:
+        return "Point"
+    if QGisType==1:
+        return "LineString"
+    if QGisType==2:
+        return "Polygon"
+    if QGisType==3:
+        return "UnknownGeometry"
+    if QGisType==4:
+        return "NoGeometry"
+        
 def verbose():
     return True
 
@@ -158,7 +170,469 @@ def myver():
     
 def get_cGPSmapper_path():
     return r'C:\Program Files (x86)\cGPSmapper'
+    
+def explode(input_layer,destination_title):
+    my_WkbType = { 'WKBUnknown': 0, 'WKBPoint':1, 'WKBLineString':2, 'WKBPolygon':3, 'WKBMultiPoint':4, 'WKBMultiLineString':5, 'WKBMultiPolygon':6, 'WKBNoGeometry':7, 'WKBPoint25D':8, 'WKBLineString25D':9, 'WKBPolygon25D':10, 'WKBMultiPoint25D':11, 'WKBMultiLineString25D':12, 'WKBMultiPolygon25D':13 }
+    my_rev_WkbType = {v:k for k, v in my_WkbType.items()}
+    my_GeometryType = { 'Point': 0, 'Line':1, 'Polygon':2, 'UnknownGeometry':3, 'NoGeometry':4}
+    my_rev_GeometryType = {v:k for k, v in my_GeometryType.items()}
+    QGisWKBType=input_layer.dataProvider().geometryType()
+    #multiple_type=[4,5,6,11,12,13]
+    #multipart=False
+    #if QGisWKBType in multiple_type:
+    #    multipart=True
+    EPSG_code=int(input_layer.dataProvider().crs().authid().split(":")[1])
+    #Read layer directly to memory
+    destination_layer=QgsVectorLayer(my_rev_WkbType[QGisWKBType][3:]+'?crs=epsg:'+str(EPSG_code)+'&index=no',destination_title,'memory')
+    #Add fields to destination layer
+    oldattributeList = input_layer.dataProvider().fields().toList()
+    newattributeList=[]
+    for attrib in oldattributeList:
+        if destination_layer.fieldNameIndex(attrib.name())==-1:
+            newattributeList.append(QgsField(attrib.name(),attrib.type()))
+    destination_layer.dataProvider().addAttributes(newattributeList)
+    destination_layer.updateFields()
+    destination_layer_attribute_list = input_layer.dataProvider().fields().toList()
+    #Copy feataures to new layer
+    cfeatures=[]
+    for feature in input_layer.getFeatures():
+        #Get attributes for this feature
+        cfeature_Attributes=[]
+        for destination_QGSfield in destination_layer_attribute_list:
+            attribute_field=destination_QGSfield.name()
+            attr_still_to_append=True
+            idx = input_layer.fieldNameIndex(attribute_field)
+            if idx>=0:
+                cfeature_Attributes.append(feature.attributes()[idx])
+                attr_still_to_append=False
+            if attr_still_to_append:
+                cfeature_Attributes.append(None)
+        #Get geometrys
+        geom = feature.geometry()
+        new_geoms=[]
+        if geom.isMultipart():
+            new_geoms=geom.asGeometryCollection()
+        else:
+            new_geoms.append(geom)
+        #Add attributes to geometrys
+        for new_geom in new_geoms:
+            cfeature = QgsFeature()
+            cfeature.setGeometry(new_geom)
+            cfeature.setAttributes(cfeature_Attributes)
+            cfeatures.append(cfeature)
+    destination_layer.dataProvider().addFeatures(cfeatures)
+    destination_layer.commitChanges()
+    destination_layer.updateExtents()
+    return destination_layer
 
+def dice(input_layer,destination_name="diced",max_vertices=255):
+    import numpy  
+    from PyQt4.QtCore import *
+    my_WkbType = { 'WKBUnknown': 0, 'WKBPoint':1, 'WKBLineString':2, 'WKBPolygon':3, 'WKBMultiPoint':4, 'WKBMultiLineString':5, 'WKBMultiPolygon':6, 'WKBNoGeometry':7, 'WKBPoint25D':8, 'WKBLineString25D':9, 'WKBPolygon25D':10, 'WKBMultiPoint25D':11, 'WKBMultiLineString25D':12, 'WKBMultiPolygon25D':13 }
+    my_rev_WkbType = {v:k for k, v in my_WkbType.items()}
+    QGisWKBType=input_layer.dataProvider().geometryType()
+    dice_safe_type=False
+    dice_safe_types=[1,2,3,4,5,6]
+    if QGisWKBType in dice_safe_types:
+        dice_safe_type=True
+    if not dice_safe_type:
+        raise ValueError("Invalid layer type:"+my_rev_WkbType[QGisWKBType][3:])
+
+    layerQGisType = my_rev_WkbType[QGisWKBType][3:]
+    EPSG_code=int(input_layer.dataProvider().crs().authid().split(":")[1])
+    destination_layer=QgsVectorLayer(QGisType_to_URItext(WKBType_to_type(QGisWKBType))+'?crs=epsg:'+str(EPSG_code)+'&index=yes',destination_name,'memory')
+
+    if not destination_layer.isValid():
+        raise ValueError("Failed to create memory layer")
+    #Add input_layer attribute fields
+    input_layer_attrib_names = input_layer.dataProvider().fields()
+    oldattributeList = input_layer.dataProvider().fields().toList()
+    newattributeList=[]
+    for attrib in oldattributeList:
+        if destination_layer.fieldNameIndex(attrib.name())==-1:
+            newattributeList.append(QgsField(attrib.name(),attrib.type()))
+    destination_layer.dataProvider().addAttributes(newattributeList)
+    destination_layer.updateFields()
+    destination_layer_attribute_list=destination_layer.dataProvider().fields().toList()
+    #Copy features over to the the new memory layer
+    first_output_geom_type=None
+    destination_layer.startEditing()
+    cfeatures=[]
+    xfeatures = input_layer.getFeatures()
+    for xfeature in xfeatures:
+        #Get attributes from feature
+        cfeature_Attributes=[]
+        for destination_QGSfield in destination_layer_attribute_list:
+            attribute_field=destination_QGSfield.name()
+            attr_still_to_append=True
+            #Get old attribute value and append
+            idx = input_layer.fieldNameIndex(attribute_field)
+            if idx>=0:
+                cfeature_Attributes.append(xfeature.attributes()[idx])
+                attr_still_to_append=False
+            #Append a Null into any unfound attributes
+            if attr_still_to_append:
+                cfeature_Attributes.append(None)
+                
+        gorzirras=[]
+        diced=[]
+        #Get geometrys from feature
+        geom = xfeature.geometry()
+        if geom.isMultipart():
+            gorzirras=geom.asGeometryCollection()
+        else:
+            gorzirras.append(geom)
+        while len(gorzirras)>0:
+            gorzirra=gorzirras.pop()
+            if gorzirra.type()==QGis.Point and QGisWKBType in [QGis.WKBPoint,QGis.WKBMultiPoint,QGis.WKBPoint25D,QGis.WKBMultiPoint25D]:
+                diced.append(gorzirra)
+            if gorzirra.type()==QGis.Line and QGisWKBType in [QGis.WKBLineString,QGis.WKBMultiLineString,QGis.WKBLineString25D,QGis.WKBMultiLineString25D]:
+                line_as_list = gorzirra.asPolyline()
+                if len(line_as_list)<=max_vertices:
+                    diced.append(gorzirra)
+                else:
+                    diced.append(QgsGeometry.fromPolyline(line_as_list[:max_vertices]))
+                    gorzirras.append(QgsGeometry.fromPolyline(line_as_list[(max_vertices-1):]))
+            if gorzirra.type()==QGis.Polygon and QGisWKBType in [QGis.WKBPolygon,QGis.WKBMultiPolygon,QGis.WKBPolygon25D,QGis.WKBMultiPolygon25D]:
+                xval_list=[]
+                yval_list=[]
+                ring_list=gorzirra.asPolygon()
+                for ring in ring_list:
+                    for vertex in ring:
+                            xval_list.append(vertex.x())
+                            yval_list.append(vertex.y())
+                if len(xval_list)<=max_vertices:
+                    diced.append(gorzirra)
+                else:
+                    #Locate longest dimension
+                    bbox_rectangle=gorzirra.boundingBox()
+                    xmax=bbox_rectangle.xMaximum()
+                    ymax=bbox_rectangle.yMaximum()
+                    xmin=bbox_rectangle.xMinimum()
+                    ymin=bbox_rectangle.yMinimum()
+                    dice_X=True
+                    if (ymax-ymin)>(xmax-xmin):
+                        dice_X=False
+                    #Locate median vertex value of long dimension
+                    if dice_X:
+                        median_val=numpy.median(numpy.array(xval_list))
+                    else:
+                        median_val=numpy.median(numpy.array(yval_list))
+                    #Build dice masks
+                    if dice_X:
+                        dice_left_geometry=QgsGeometry.fromPolygon( [ [ \
+                        QgsPoint(xmin,ymin),\
+                        QgsPoint(xmin,ymax), \
+                        QgsPoint(median_val,ymax),\
+                        QgsPoint(median_val,ymin) ] ] )
+                        dice_right_geometry=QgsGeometry.fromPolygon( [ [ \
+                        QgsPoint(median_val,ymin),\
+                        QgsPoint(median_val,ymax), \
+                        QgsPoint(xmax,ymax),\
+                        QgsPoint(xmax,ymin) ] ] )
+                    else:
+                        dice_left_geometry=QgsGeometry.fromPolygon( [ [ \
+                        QgsPoint(xmin,ymin),\
+                        QgsPoint(xmin,median_val), \
+                        QgsPoint(xmax,median_val),\
+                        QgsPoint(xmax,ymin) ] ] )
+                        dice_right_geometry=QgsGeometry.fromPolygon( [ [ \
+                        QgsPoint(xmin,median_val),\
+                        QgsPoint(xmin,ymax), \
+                        QgsPoint(xmax,ymax),\
+                        QgsPoint(xmax,median_val) ] ] )
+                    #Apply dice masks
+                    left_diced=(gorzirra.intersection(dice_left_geometry)).asGeometryCollection()
+                    right_diced=(gorzirra.intersection(dice_right_geometry)).asGeometryCollection()
+                    for unpop in left_diced+right_diced:
+                        gorzirras.append(unpop)
+        for dgeometry in diced:
+            ngeometrys=[]
+            if dgeometry.isMultipart():
+                ngeometrys=dgeometry.asGeometryCollection()
+            else:
+                ngeometrys.append(dgeometry)
+            for ngeometry in ngeometrys:
+                #Add attributes to each
+                cfeature = QgsFeature()
+                cfeature.setGeometry(ngeometry)
+                #Populate feature with attributes
+                cfeature.setAttributes(cfeature_Attributes)
+                cfeatures.append(cfeature)
+                #            
+                #        dice_this_feature=False
+                #        xgeometry = xfeature.geometry()
+                #        slices=1
+                #        if QGisWKBType==2 or QGisWKBType==5:
+                #            if xgeometry.isMultipart():
+                #                list_of_geoms= xgeometry.asGeometryCollection()
+                #            else:
+                #                list_of_geoms=[]
+                #                list_of_geoms.append(xgeometry)
+                #            for geom in list_of_geoms:
+                #                line_as_list = geom.asPolyline()
+                #                if len(line_as_list)>max_vertices:
+                #                    gorzirras.append(geom)
+                #                else:
+                #                   diced.append(geom)
+                #                while len(gorzirras)>0:
+                #                    gorzirra=gorzirras.pop()
+                #                    line_as_list = gorzirra.asPolyline()
+                #                    dice_left_geometry=QgsGeometry.fromPolyline(line_as_list[:max_vertices])
+                #                    diced.append(dice_left_geometry)
+                #                    dice_right_geometry=QgsGeometry.fromPolyline(line_as_list[(max_vertices-1):])
+                #                    if len(line_as_list)-max_vertices+1>max_vertices:
+                #                        gorzirras.append(dice_right_geometry)
+                #                    else:
+                #                        diced.append(dice_right_geometry)
+                #                
+                #        if QGisWKBType==3 or QGisWKBType==6:
+                #            if xgeometry.isMultipart():
+                #               list_of_geoms= xgeometry.asGeometryCollection()
+                #            else:
+                #                list_of_geoms=[]
+                #                list_of_geoms.append(xgeometry)
+                #            for geom in list_of_geoms:
+                #                rings = geom.asPolygon()
+                #                no_vertices=0
+                #                for ring in rings:
+                #                    no_vertices = no_vertices+len(ring)
+                #                if no_vertices>max_vertices:
+                #                    gorzirras.append(geom)
+                #                else:
+                #                    diced.append(geom)
+                #                
+                #                while len(gorzirras)>0:
+                #                    slices+=1
+                #                    gorzirra=gorzirras.pop()
+                #                    #Determine longer dimension to split
+                #                    bbox_rectangle=gorzirra.boundingBox()
+                #                    xmax=bbox_rectangle.xMaximum()
+                #                    ymax=bbox_rectangle.yMaximum()
+                #                    xmin=bbox_rectangle.xMinimum()
+                #                    ymin=bbox_rectangle.yMinimum()
+                #                    dice_X=True
+                #                    if (ymax-ymin)>(xmax-xmin):
+                #                        dice_X=False
+                #                    #Locate median vertex value of long dimension
+                #                    ring_list=gorzirra.asPolygon()
+                #                    val_list=[]
+                #                    for ring in ring_list:
+                #                        for vertex in ring:
+                #                            if dice_X:
+                #                                val_list.append(vertex.x())
+                #                            else:
+                #                                val_list.append(vertex.y())
+                #                    median_val=numpy.median(numpy.array(val_list))
+                #                    if dice_X:
+                #                        dice_left_geometry=QgsGeometry.fromPolygon( [ [ \
+                #                        QgsPoint(xmin,ymin),\
+                #                        QgsPoint(xmin,ymax), \
+                #                        QgsPoint(median_val,ymax),\
+                #                        QgsPoint(median_val,ymin) ] ] )
+                #                        
+                #                        dice_right_geometry=QgsGeometry.fromPolygon( [ [ \
+                #                        QgsPoint(median_val,ymin),\
+                #                        QgsPoint(median_val,ymax), \
+                #                        QgsPoint(xmax,ymax),\
+                #                        QgsPoint(xmax,ymin) ] ] )
+                #                    else:
+                #                        dice_left_geometry=QgsGeometry.fromPolygon( [ [ \
+                #                        QgsPoint(xmin,ymin),\
+                #                        QgsPoint(xmin,median_val), \
+                #                        QgsPoint(xmax,median_val),\
+                #                        QgsPoint(xmax,ymin) ] ] )
+                #                        
+                #                        dice_right_geometry=QgsGeometry.fromPolygon( [ [ \
+                #                        QgsPoint(xmin,median_val),\
+                #                        QgsPoint(xmin,ymax), \
+                #                        QgsPoint(xmax,ymax),\
+                #                        QgsPoint(xmax,median_val) ] ] )
+                #                    
+                #                    #Carry out intersections
+                #                    left_diced=(gorzirra.intersection(dice_left_geometry)).asGeometryCollection()
+                #                    right_diced=(gorzirra.intersection(dice_right_geometry)).asGeometryCollection()
+                #                    
+                #                    diced_list=left_diced+right_diced
+                #                    for diced_geometry in diced_list:
+                #                        rings = diced_geometry.asPolygon()
+                #                        no_vertices=0
+                #                        for ring in rings:
+                #                            no_vertices = no_vertices+len(ring)
+                #                        if no_vertices>max_vertices:
+                #                            gorzirras.append(diced_geometry)
+                #                        else:
+                #                            #if not diced_geometry.isGeosEmpty():
+                #                            diced.append(diced_geometry)
+                #        #Create destination features
+                #        for pgeometry in diced:
+                #            if pgeometry.isMultipart():
+                #                list_of_geoms= pgeometry.asGeometryCollection()
+                #            else:
+                #                list_of_geoms=[]
+                #                list_of_geoms.append(pgeometry)
+                #            for ngeometry in list_of_geoms:
+                #                ok_to_add=False
+                #                if first_output_geom_type is None:
+                #                    first_output_geom_type=ngeometry.type()
+                #                    ok_to_add=True
+                #                else:
+                #                    if first_output_geom_type==ngeometry.type():
+                #                        ok_to_add=True
+                #                #if ngeometry.type()==0:
+                #                #    ok_to_add=False
+                #                if ok_to_add:
+                #                    if ngeometry.isMultipart():
+                #                        print "STILL MULTIPART??"
+                #                    cfeature = QgsFeature()
+                #                    cfeature.setGeometry(ngeometry)
+                #                    #Populate feature with attributes
+                #
+                #                cfeature.setAttributes(cfeature_Attributes)
+                #                cfeatures.append(cfeature)
+    destination_layer.dataProvider().addFeatures(cfeatures)
+    destination_layer.commitChanges()
+    destination_layer.updateExtents()
+    #QgsMapLayerRegistry.instance().addMapLayer(destination_layer)
+    return destination_layer
+
+def dehole(input_layer,destination_name="diholed"):
+    import numpy  
+    from PyQt4.QtCore import *
+    my_WkbType = { 'WKBUnknown': 0, 'WKBPoint':1, 'WKBLineString':2, 'WKBPolygon':3, 'WKBMultiPoint':4, 'WKBMultiLineString':5, 'WKBMultiPolygon':6, 'WKBNoGeometry':7, 'WKBPoint25D':8, 'WKBLineString25D':9, 'WKBPolygon25D':10, 'WKBMultiPoint25D':11, 'WKBMultiLineString25D':12, 'WKBMultiPolygon25D':13 }
+    my_rev_WkbType = {v:k for k, v in my_WkbType.items()}
+    my_GeometryType = { 'Point': 0, 'Line':1, 'Polygon':2, 'UnknownGeometry':3, 'NoGeometry':4}
+    my_rev_GeometryType = {v:k for k, v in my_GeometryType.items()}
+    QGisWKBType=input_layer.dataProvider().geometryType()
+    dice_safe_type=False
+    dice_safe_types=[1,2,3,4,5,6]
+    if QGisWKBType in dice_safe_types:
+        dice_safe_type=True
+    if not dice_safe_type:
+        raise ValueError("Invalid layer type:"+my_rev_WkbType[QGisWKBType][3:])
+
+    layerQGisType = my_rev_WkbType[QGisWKBType][3:]
+    EPSG_code=int(input_layer.dataProvider().crs().authid().split(":")[1])
+    destination_layer=QgsVectorLayer(QGisType_to_URItext(WKBType_to_type(QGisWKBType))+'?crs=epsg:'+str(EPSG_code)+'&index=yes',destination_name,'memory')
+
+    if not destination_layer.isValid():
+        raise ValueError("Failed to create memory layer")
+    #Add input_layer attribute fields
+    input_layer_attrib_names = input_layer.dataProvider().fields()
+    oldattributeList = input_layer.dataProvider().fields().toList()
+    newattributeList=[]
+    for attrib in oldattributeList:
+        if destination_layer.fieldNameIndex(attrib.name())==-1:
+            newattributeList.append(QgsField(attrib.name(),attrib.type()))
+    destination_layer.dataProvider().addAttributes(newattributeList)
+    destination_layer.updateFields()
+    destination_layer_attribute_list=destination_layer.dataProvider().fields().toList()
+    #Copy features over to the the new memory layer
+    first_output_geom_type=None
+    destination_layer.startEditing()
+    cfeatures=[]
+    xfeatures = input_layer.getFeatures()
+    for xfeature in xfeatures:
+        #Get attributes from feature
+        cfeature_Attributes=[]
+        for destination_QGSfield in destination_layer_attribute_list:
+            attribute_field=destination_QGSfield.name()
+            attr_still_to_append=True
+            #Get old attribute value and append
+            idx = input_layer.fieldNameIndex(attribute_field)
+            if idx>=0:
+                cfeature_Attributes.append(xfeature.attributes()[idx])
+                attr_still_to_append=False
+            #Append a Null into any unfound attributes
+            if attr_still_to_append:
+                cfeature_Attributes.append(None)
+                
+
+        #Get geometrys from feature
+        geom = xfeature.geometry()
+        gorzirras=[]
+        diced=[]
+        if geom.isMultipart():
+            gorzirras=geom.asGeometryCollection()
+        else:
+            gorzirras.append(geom)
+        while len(gorzirras)>0:
+            gorzirra=gorzirras.pop()
+            if gorzirra.type()==QGis.Point:
+                if QGisWKBType in [QGis.WKBPoint,QGis.WKBMultiPoint,QGis.WKBPoint25D,QGis.WKBMultiPoint25D]:
+                    diced.append(gorzirra)
+                else:
+                    print "WARNING "+my_rev_GeometryType[QGis.Point]+" found for "+my_rev_WkbType[QGisWKBType][3:]+" layer"
+            if gorzirra.type()==QGis.Line:
+                if QGisWKBType in [QGis.WKBLineString,QGis.WKBMultiLineString,QGis.WKBLineString25D,QGis.WKBMultiLineString25D]:
+                    diced.append(gorzirra)
+                else:
+                    print "WARNING "+my_rev_GeometryType[QGis.Line]+" found for "+my_rev_WkbType[QGisWKBType][3:]+" layer"
+            if gorzirra.type()==QGis.Polygon:
+                if QGisWKBType in [QGis.WKBPolygon,QGis.WKBMultiPolygon,QGis.WKBPolygon25D,QGis.WKBMultiPolygon25D]:
+                    if len(gorzirra.asPolygon())<2:
+                        diced.append(gorzirra)
+                    else:
+                        bbox_rectangle=gorzirra.boundingBox()
+                        xmax=bbox_rectangle.xMaximum()
+                        ymax=bbox_rectangle.yMaximum()
+                        xmin=bbox_rectangle.xMinimum()
+                        ymin=bbox_rectangle.yMinimum()
+                        slice_X=True
+                        if (ymax-ymin)>(xmax-xmin):
+                            slice_X=False
+                        #locate center of first island
+                        gorzirra_polygon=gorzirra.asPolygon()
+                        island_center=(QgsGeometry.fromPolygon([gorzirra_polygon[1]])).centroid().asPoint()
+                        island_centerx=island_center.x()
+                        island_centery=island_center.y()
+                        if slice_X:
+                            slice_left_geometry=QgsGeometry.fromPolygon( [ [ \
+                            QgsPoint(xmin,ymin),\
+                            QgsPoint(xmin,ymax), \
+                            QgsPoint(island_centerx,ymax),\
+                            QgsPoint(island_centerx,ymin) ] ] )
+                            slice_right_geometry=QgsGeometry.fromPolygon( [ [ \
+                            QgsPoint(island_centerx,ymin),\
+                            QgsPoint(island_centerx,ymax), \
+                            QgsPoint(xmax,ymax),\
+                            QgsPoint(xmax,ymin) ] ] )
+                        else:
+                            slice_left_geometry=QgsGeometry.fromPolygon( [ [ \
+                            QgsPoint(xmin,ymin),\
+                            QgsPoint(xmin,island_centery), \
+                            QgsPoint(xmax,island_centery),\
+                            QgsPoint(xmax,ymin) ] ] )
+                            slice_right_geometry=QgsGeometry.fromPolygon( [ [ \
+                            QgsPoint(xmin,island_centery),\
+                            QgsPoint(xmin,ymax), \
+                            QgsPoint(xmax,ymax),\
+                            QgsPoint(xmax,island_centery) ] ] )
+                        left_sliced=(gorzirra.intersection(slice_left_geometry)).asGeometryCollection()
+                        right_sliced=(gorzirra.intersection(slice_right_geometry)).asGeometryCollection()
+                        sliced_list=left_sliced+right_sliced
+                        for unpop in sliced_list:
+                            gorzirras.append(unpop)
+                else:
+                    print "WARNING "+my_rev_GeometryType[QGis.Polygon]+" found for "+my_rev_WkbType[QGisWKBType][3:]+" layer"
+        for dgeometry in diced:
+            ngeometrys=[]
+            if dgeometry.isMultipart():
+                ngeometrys=dgeometry.asGeometryCollection()
+            else:
+                ngeometrys.append(dgeometry)
+            for ngeometry in ngeometrys:
+                #Add attributes to each
+                cfeature = QgsFeature()
+                cfeature.setGeometry(ngeometry)
+                #Populate feature with attributes
+                cfeature.setAttributes(cfeature_Attributes)
+                cfeatures.append(cfeature)
+    destination_layer.dataProvider().addFeatures(cfeatures)
+    destination_layer.commitChanges()
+    destination_layer.updateExtents()
+    #QgsMapLayerRegistry.instance().addMapLayer(destination_layer)
+    return destination_layer
 
 def get_WINEpath():
     print "checkin wine path now"
@@ -977,6 +1451,16 @@ class Polish:
         self.iface.mapCanvas().refresh()
         return layer_handles
 
+    def reorganise(self,layers_list):
+        diced_layers=[]
+        for input_layer in layers_list:
+            diced_layers.append(dice(input_layer,input_layer.name(),255))
+        output_handles=[]
+        for diced_layer in diced_layers:
+            output_handles.append(dehole(input_layer,input_layer.name()))
+            QgsMapLayerRegistry.instance().removeMapLayer(diced_layer.id())
+        return output_handles
+
     def compile_preview_by_cgpsmapper(self,img_files_list,import_pv_dict):
         cgpsmapper_path=get_cGPSmapper_path()
         #cgpsmapper_file_path=os.path.join(cgpsmapper_path,"cgpsmapper.exe")
@@ -1141,8 +1625,10 @@ class Polish:
                 pass
                 #os.remove("/tmp/command_script_"+str(i)+".sh")
 
-    def compile_by_cgpsmapper(self,mp_files_list,cgpsmapper_path,import_pv_dict={}):
+    def compile_by_cgpsmapper(self,mp_files_list,cgpsmapper_path,import_pv_dict={},compiler="cGPSmapper"):
         if isLinux():
+            if compiler=="MapTk":
+                print "MapTk compilation not available in Linux yet - attempting to compile with cGPSmapper at "+cgpsmapper_path
             if verbose(): print "Running in linux requires  WINE"
             if verbose(): print "Running in linux requires  cpsmapper path as WINE dos path"
             if verbose(): print "Wine located at "+str(get_WINEpath())
@@ -1195,11 +1681,7 @@ class Polish:
                     wine_id_file_path=r"C:/users/"+username+r"/Temp/"+id_file
                     Linux_full_command=r"wine '"+cgpsmapper_file_path+"' '"+wine_id_file_path+"'"
                     if verbose(): print Linux_full_command
-                
-                if isWindows():    
-                    win_full_command=cgpsmapper_file_path+" "+os_id_file_path
-                    if verbose(): print win_full_command
-                    if verbose(): print "call(r'"+win_full_command+"', shell=True)"
+
                 shutil.copy(fname,os_id_file_path)
             
                 
