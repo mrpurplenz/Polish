@@ -688,9 +688,9 @@ def rev_bit_level(file_header_dict,level_val):
     return rev_BIT_LEVEL_DICT[level_val]
     
 def geomWrite(polish_file,pntsgeom,xform,DATA_LVL,compiler="cGPSmapper"):
-    dp=5
-    if compiler=="cGPSmapper":
-        dp=10
+    dp=12
+    if compiler=="MapTk":
+        dp=5
     Datastring=''
     firstpoint=0
     pointcount=0
@@ -1474,7 +1474,7 @@ class Polish:
         layers_list=internal_reorganise(input_layers_list)
         return layers_list
         
-    def compile_preview_by_cgpsmapper(self,img_files_list,import_pv_dict):
+    def compile_preview_by_cgpsmapper(self,img_files_list,import_pv_dict,):
         cgpsmapper_path=get_cGPSmapper_path()
         #cgpsmapper_file_path=os.path.join(cgpsmapper_path,"cgpsmapper.exe")
         #cpreview_file_path=os.path.join(cgpsmapper_path,"cpreview.exe")
@@ -1505,13 +1505,11 @@ class Polish:
         output_dir=os.path.dirname(import_pv_dict['FileName'])
         preview_default_dictionary['FileName']=new_temp_output_path
         
-        
-        
         for img_file in img_files_list:
             if os.path.exists(img_file):
                 files_list.append(img_file)
             else:
-               if verbose(): print "Could not find "+img_file
+               if verbose(): print "WARNING: Could not find "+img_file
                
         for fname in files_list:
             img_file_name=basename(fname)
@@ -1548,17 +1546,37 @@ class Polish:
             #WINE_cpreview_file_path=WINE_cpreview_file_path.replace("/","\\")
             full_command=r"wine '"+WINE_cpreview_file_path+"' '"+WINE_PV_FILE_FULL_PATH+"'"
             if verbose(): print full_command
-        else:
-            if verbose(): print full_command
-        status = call(full_command, shell=True)
+            status = call(full_command, shell=True)
+        if isWindows():
+            bin_path=cpreview_file_path
+            arg_string=""#NB cant seem to add arg yet??
+            streaming=True
+            shell_command=[bin_path, PV_FILE_FULL_PATH]
+            print "Running: "+" ".join(shell_command)
+            p = subprocess.Popen(shell_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE,stdin=subprocess.PIPE, bufsize=1)
+            if streaming:
+                with p.stdout:
+                    for line in iter(p.stdout.readline, b''):
+                        print line,
+                p.wait() 
+            else:
+                out, err = p.communicate()
+                print out
+        
         suffix_list=[]
         suffix_list.append('.MDX')
         suffix_list.append('.mp')
         suffix_list.append('.reg')
         suffix_list.append('.TDB')
         for suffix in suffix_list:
-            shutil.copy(preview_default_dictionary['FileName']+suffix,os.path.join(output_dir,basename(preview_default_dictionary['FileName']))+suffix)
-            os.remove(preview_default_dictionary['FileName']+suffix)
+            #Determine if file exists
+            src = preview_default_dictionary['FileName']+suffix
+            dst = os.path.join(output_dir,basename(preview_default_dictionary['FileName']))+suffix
+            if os.path.isfile(src):
+                shutil.copy(src,dst)
+                os.remove(src)
+            else:
+                print "WARNING: "+src+" NOT FOUND: NOT INCLUDING IN MAPSET"
         for temp_file in temp_list:
             os.remove(temp_file)
             pass
@@ -1573,10 +1591,25 @@ class Polish:
             WINE_preview_file_path="Z:"+preview_file_path
             WINE_preview_file_path=WINE_preview_file_path.replace("/","\\")
             full_command=r"wine '"+WINE_cgpsmapper_file_path+"' '"+WINE_preview_file_path+"'"
-     
-        if verbose(): print full_command
-        status = call(full_command, shell=True)
-        
+            if verbose(): print full_command
+            status = call(full_command, shell=True)
+        if isWindows():
+            bin_path=cgpsmapper_file_path
+            arg_string=""#NB cant seem to add arg yet??
+            streaming=True
+            shell_command=[bin_path, preview_file_path]
+            print "Running: "+" ".join(shell_command)
+            p = subprocess.Popen(shell_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE,stdin=subprocess.PIPE, bufsize=1)
+            if streaming:
+                with p.stdout:
+                    for line in iter(p.stdout.readline, b''):
+                        print line,
+                p.wait() 
+            else:
+                out, err = p.communicate()
+                print out
+            
+            
     def get_default_mp_header(self):
         default_header = default_mp_header()
         return default_header
