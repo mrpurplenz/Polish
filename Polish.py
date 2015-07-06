@@ -32,6 +32,65 @@ from subprocess import PIPE
 from subprocess import check_output
 from string import digits
 
+def exePath(program):
+    import os
+    def is_exe(fpath):
+        return os.path.isfile(fpath) and os.access(fpath, os.X_OK)
+    fpath, fname = os.path.split(program)
+    if fpath:
+        if is_exe(program):
+            return program
+    else:
+        for path in os.environ["PATH"].split(os.pathsep):
+            path = path.strip('"')
+            exe_file = os.path.join(path, program)
+            if is_exe(exe_file):
+                return exe_file
+    return None
+    
+#crossdos
+def crossdos(input_dos_shell_command_as_list,output="streaming"):
+
+        
+    #input_dos_shell_command_as_list contains the dos command delimited by spaces into a python list of strings
+    #output options include "streaming", "block", or "none"
+    #Import dependancies
+    import platform, os, subprocess
+    #Determine OS
+    isLinux = platform.system()=='Linux'
+    isWindows = platform.system()=='Windows'
+    isMac = platform.system()=='Mac'
+    
+    if isWindows:
+        dos_shell_command_as_list=input_dos_shell_command_as_list
+        print "Executing: "+" ".join(dos_shell_command_as_list)
+    else:
+        #Check for wine
+        #winePath = exePath("wine")
+        #if winePath is None:
+        #    raise ValueError('Cannot run your command outside windows without "wine". Install wine!')
+        #else:
+        if verbose: print "Running in wine"
+        dos_shell_command_as_list=["wine"]+input_dos_shell_command_as_list    
+    
+    binary_command=exePath(dos_shell_command_as_list[0])
+    if binary_command==None:
+        raise ValueError("executable file not found in PATH "+input_dos_shell_command_as_list[0])
+    else:
+        dos_shell_command_as_list[0]=binary_command
+    
+
+    p = subprocess.Popen(dos_shell_command_as_list, stdout=subprocess.PIPE, stderr=subprocess.PIPE,stdin=subprocess.PIPE, bufsize=1)
+    if output=="streaming":
+        with p.stdout:
+            for line in iter(p.stdout.readline, b''):
+                print line,
+        p.wait() 
+    else:
+        out, err = p.communicate()
+        if output=="block":
+            print out
+
 def attribute_odict(QGisType):
     default_attributes_odict=None
     if QGisType==QGis.Point:
@@ -517,6 +576,9 @@ def dehole(input_layer,destination_name="diholed"):
 
     if not destination_layer.isValid():
         raise ValueError("Failed to create memory layer")
+        
+        
+        
     #Add input_layer attribute fields
     input_layer_attrib_names = input_layer.dataProvider().fields()
     oldattributeList = input_layer.dataProvider().fields().toList()
@@ -769,10 +831,13 @@ def writepolishobject(polish_file,outputtype,Feature_attributes_odict,file_heade
         if attr_name=='Feature_id':
             attr_val=None
         if attr_name=='Type':
-            if compiler=="cGPSmapper":
-                pass
-            else:
+            if compiler=="MapTk":
                 attr_val=attr_val.lower()
+            else:
+                pass
+            if attr_val=="0x0":
+                print "WARNING: Type cannot be 0x0"
+                print Feature_attributes_odict
         if attr_val==attribute_odict(QGisType)[attr_name][0]:
             attr_val=None
             
@@ -1546,7 +1611,8 @@ class Polish:
             #WINE_cpreview_file_path=WINE_cpreview_file_path.replace("/","\\")
             full_command=r"wine '"+WINE_cpreview_file_path+"' '"+WINE_PV_FILE_FULL_PATH+"'"
             if verbose(): print full_command
-            status = call(full_command, shell=True)
+            #status = call(full_command, shell=True)
+            result=crossdos([WINE_cpreview_file_path,WINE_PV_FILE_FULL_PATH])
         if isWindows():
             bin_path=cpreview_file_path
             arg_string=""#NB cant seem to add arg yet??
@@ -1591,8 +1657,9 @@ class Polish:
             WINE_preview_file_path="Z:"+preview_file_path
             WINE_preview_file_path=WINE_preview_file_path.replace("/","\\")
             full_command=r"wine '"+WINE_cgpsmapper_file_path+"' '"+WINE_preview_file_path+"'"
-            if verbose(): print full_command
-            status = call(full_command, shell=True)
+            #if verbose(): print full_command
+            #status = call(full_command, shell=True)
+            result=crossdos([WINE_cgpsmapper_file_path,WINE_preview_file_path])
         if isWindows():
             bin_path=cgpsmapper_file_path
             arg_string=""#NB cant seem to add arg yet??
