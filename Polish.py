@@ -860,7 +860,7 @@ def default_mp_header():
     default_header['ID'] = random.randint(10000000,99999999)
     default_header['Name']='python exporter map'
     default_header['LBLcoding']=6
-    default_header['Codepage']=0
+    default_header['Codepage']=1252
     default_header['Datum']='W84'
     default_header['Transparent']='N'
     default_header['MG']='N'
@@ -1558,7 +1558,6 @@ class Polish:
             try:
                 #print "attempting to change "+pv_key+" to "+import_pv_dict[pv_key]
                 preview_default_dictionary[pv_key]=import_pv_dict[pv_key]
-                
             except:
                 pass
         
@@ -1569,22 +1568,25 @@ class Polish:
         new_temp_output_path=os.path.join(tempfile.gettempdir(),basename(import_pv_dict['FileName']))
         output_dir=os.path.dirname(import_pv_dict['FileName'])
         preview_default_dictionary['FileName']=new_temp_output_path
-        
+        files_not_found=[]
         for img_file in img_files_list:
             if os.path.exists(img_file):
                 files_list.append(img_file)
             else:
-               if verbose(): print "WARNING: Could not find "+img_file
+                files_not_found.append(img_file)
+        if len(files_not_found)>0:
+            if verbose(): print "WARNING: Could not find the following files"
                
         for fname in files_list:
             img_file_name=basename(fname)
             img_path=os.path.dirname(fname)
             oldfile=fname
             newfile=os.path.join(tempfile.gettempdir(),basename(fname))
-            shutil.copy(oldfile,newfile)
-            temp_list.append(newfile)
-            
+            #shutil.copy(oldfile,newfile)
+            #temp_list.append(newfile)
+            temp_list.append(oldfile)
         #write pv file into temp directory
+        files_not_found=[]
         PV_FILE_FULL_PATH=os.path.join(tempfile.gettempdir(),'PV_FILE.txt')
         with io.open(PV_FILE_FULL_PATH, 'w',1,None,None,'\r\n') as pv_file:
             pv_file.write(u''+';Temporary preview file created by the QGIS polish class library'+'\n')
@@ -1598,21 +1600,45 @@ class Polish:
             pv_file.write(u''+'[End-Map]'+'\n')
             pv_file.write(u''+''+'\n')
             pv_file.write(u''+'[Files]'+'\n')
-            for temp_file in temp_list:
-                pv_file.write(u''+'img='+temp_file+'\n')
-            pv_file.write(u''+'[END-Files]'+'\n')
 
+            for temp_file in temp_list:
+                if os.path.isfile(temp_file):
+                    pv_file.write(u''+'img='+temp_file+'\n')
+                else:
+                    files_not_found.append(temp_file) 
+            pv_file.write(u''+'[END-Files]'+'\n')
+        if len(files_not_found)>0:
+            print "WARNING THE FOLLOWING FILES COULD NOT BE LOCATED AND WERE NOT ADDED"
+            for file_not_found in files_not_found:
+                print file_not_found
+        
+        print "TEMPORARY PV FILE SAVED"
+        print "PV FILE AT: "+PV_FILE_FULL_PATH
         full_command=cpreview_file_path+" "+PV_FILE_FULL_PATH
-        if verbose(): print full_command        
         if isLinux():
             WINE_PV_FILE_FULL_PATH="Z:"+PV_FILE_FULL_PATH
             WINE_PV_FILE_FULL_PATH=WINE_PV_FILE_FULL_PATH.replace("/","\\")
             WINE_cpreview_file_path=cpreview_file_path
             #WINE_cpreview_file_path=WINE_cpreview_file_path.replace("/","\\")
             full_command=r"wine '"+WINE_cpreview_file_path+"' '"+WINE_PV_FILE_FULL_PATH+"'"
+            full_command_as_list=['wine',"'"+WINE_cpreview_file_path+"'","'"+WINE_PV_FILE_FULL_PATH+"'"]
+            full_command_as_list=['wine',WINE_cpreview_file_path,WINE_PV_FILE_FULL_PATH]
             if verbose(): print full_command
             #status = call(full_command, shell=True)
-            result=crossdos([WINE_cpreview_file_path,WINE_PV_FILE_FULL_PATH])
+            
+            if verbose(): print full_command_as_list
+            p = subprocess.Popen(full_command_as_list, stdout=subprocess.PIPE, stderr=subprocess.PIPE,stdin=subprocess.PIPE, bufsize=1)
+            with p.stdout:
+                for line in iter(p.stdout.readline, b''):
+                    print line,
+            with p.stderr:
+                for line in iter(p.stderr.readline, b''):
+                    print line,
+            p.wait() 
+            
+            
+            
+            #result=crossdos([WINE_cpreview_file_path,WINE_PV_FILE_FULL_PATH])
         if isWindows():
             bin_path=cpreview_file_path
             arg_string=""#NB cant seem to add arg yet??
@@ -1634,19 +1660,28 @@ class Polish:
         suffix_list.append('.mp')
         suffix_list.append('.reg')
         suffix_list.append('.TDB')
+        suffix_list.append('_MDR.IMG')
         for suffix in suffix_list:
             #Determine if file exists
             src = preview_default_dictionary['FileName']+suffix
+            if suffix=='_MDR.IMG':
+                src=os.path.join(os.path.dirname(src),os.path.basename(src).upper())
             dst = os.path.join(output_dir,basename(preview_default_dictionary['FileName']))+suffix
             if os.path.isfile(src):
                 shutil.copy(src,dst)
                 os.remove(src)
             else:
                 print "WARNING: "+src+" NOT FOUND: NOT INCLUDING IN MAPSET"
+        shutil.copy(PV_FILE_FULL_PATH,os.path.join(output_dir,"PV_FILE.txt"))
+        #raise ValueError("")
         for temp_file in temp_list:
-            os.remove(temp_file)
+            try:
+                pass
+                #os.remove(temp_file)
+            except:
+                print "WARNING COULDNT DELETE "+temp_file
             pass
-        os.remove(PV_FILE_FULL_PATH)
+        #os.remove(PV_FILE_FULL_PATH)
         preview_file_path = os.path.join(output_dir,basename(preview_default_dictionary['FileName'])+'.mp')
         full_command=cgpsmapper_path+"\\"+"cgpsmapper.exe"+" "+preview_file_path
         
@@ -1657,9 +1692,19 @@ class Polish:
             WINE_preview_file_path="Z:"+preview_file_path
             WINE_preview_file_path=WINE_preview_file_path.replace("/","\\")
             full_command=r"wine '"+WINE_cgpsmapper_file_path+"' '"+WINE_preview_file_path+"'"
-            #if verbose(): print full_command
+            if verbose(): print full_command
             #status = call(full_command, shell=True)
-            result=crossdos([WINE_cgpsmapper_file_path,WINE_preview_file_path])
+            full_command_as_list=['wine',WINE_cgpsmapper_file_path,WINE_preview_file_path]
+            p = subprocess.Popen(full_command_as_list, stdout=subprocess.PIPE, stderr=subprocess.PIPE,stdin=subprocess.PIPE, bufsize=1)
+            with p.stdout:
+                for line in iter(p.stdout.readline, b''):
+                    print line,
+            with p.stderr:
+                for line in iter(p.stderr.readline, b''):
+                    print line,
+            p.wait() 
+            
+            #result=crossdos([WINE_cgpsmapper_file_path,WINE_preview_file_path])
         if isWindows():
             bin_path=cgpsmapper_file_path
             arg_string=""#NB cant seem to add arg yet??
@@ -1711,8 +1756,11 @@ class Polish:
                 f1 = open(command_script,'w')
                 f1.write("#!/bin/bash\n")
                 f1.write("clickcgpsmapper.sh &\n")
-                f1.write(r'wine "c:\\Program Files (x86)\\cGPSmapper\\cgpsmapper.exe" ac "'+mp_file_path+'"'+"\n")
+                f1.write("val=$1\n")
+                #f1.write(r'wine "c:\\Program Files (x86)\\cGPSmapper\\cgpsmapper.exe" ac "'+mp_file_path+'"'+"\n")
+                f1.write(r'WINEPREFIX=~/.slot$((val%4+1)) wine "c:\\Program Files (x86)\\cGPSmapper\\cgpsmapper.exe" ac "'+mp_file_path+'"'+"\n")
                 f1.close()
+ 
                 st = os.stat(command_script)
                 os.chmod(command_script, st.st_mode | stat.S_IEXEC)
 
@@ -1725,7 +1773,8 @@ class Polish:
             f2.write("#!/bin/bash\n")
             f2.write("cd "+output_folder+"\n")
             f2.write("clickcgpsmapper.sh &\n")
-            f2.write("parallel "+os.path.join(tempfile.gettempdir(),"command_script_{1}.sh")+" ::: {1.."+str(i)+"}")
+            #f2.write("parallel -j 1 "+os.path.join(tempfile.gettempdir(),"command_script_{1}.sh")+" ::: {1.."+str(i)+"}")
+            f2.write("parallel -j 4 "+os.path.join(tempfile.gettempdir(),"command_script_{1}.sh '{#}'")+" ::: {1.."+str(i)+"}")
             f2.close()
             st = os.stat(parallel_script)
             os.chmod(parallel_script, st.st_mode | stat.S_IEXEC)
